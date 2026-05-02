@@ -258,18 +258,6 @@ fun AboutScreen() {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // OkHttp
-                Text(
-                    text = "OkHttp",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = stringResource(R.string.okhttp_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Gson
                 Text(

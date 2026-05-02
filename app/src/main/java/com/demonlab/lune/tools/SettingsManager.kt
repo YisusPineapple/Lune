@@ -37,9 +37,6 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("enable_hifi", true)
         set(value) = prefs.edit().putBoolean("enable_hifi", value).apply()
 
-    var downloadCovers: Boolean
-        get() = prefs.getBoolean("download_covers", false)
-        set(value) = prefs.edit().putBoolean("download_covers", value).apply()
 
     var themeMode: Int
         get() = prefs.getInt("theme_mode", 0) // 0: Auto, 1: Light, 2: Dark

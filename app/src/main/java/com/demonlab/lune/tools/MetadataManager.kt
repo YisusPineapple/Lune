@@ -71,20 +71,6 @@ class MetadataManager(private val context: Context) {
         }
     }
 
-    suspend fun updateCoverUrl(songId: Long, coverUrl: String): Boolean = withContext(Dispatchers.IO) {
-        return@withContext try {
-            val existing = database.songOverrideDao().getOverrideForSong(songId)
-            if (existing != null) {
-                database.songOverrideDao().insertOverride(existing.copy(coverUri = coverUrl))
-            } else {
-                database.songOverrideDao().insertOverride(SongOverride(songId = songId, coverUri = coverUrl))
-            }
-            true
-        } catch (e: Exception) {
-            Log.e("MetadataManager", "Error updating cover url", e)
-            false
-        }
-    }
 
     // Stub for future custom cover persistence logic if needed
     fun saveCustomCover(songId: Long, imageUri: Uri): Boolean {

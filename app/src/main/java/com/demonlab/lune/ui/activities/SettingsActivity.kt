@@ -76,7 +76,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     val settingsManager = remember { SettingsManager.getInstance(context) }
     var showWhatsapp by remember { mutableStateOf(settingsManager.showWhatsappAudio) }
     var showHiFi by remember { mutableStateOf(settingsManager.enableHiFi) }
-    var showDownloadCovers by remember { mutableStateOf(settingsManager.downloadCovers) }
+
     var isCinematicEnabled by remember { mutableStateOf(settingsManager.isCinematicPlayerEnabled) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showCustomTitleDialog by remember { mutableStateOf(false) }
@@ -275,30 +275,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                         )
                     }
                 )
-                SettingsPreferenceItem(
-                    headlineText = stringResource(R.string.download_covers),
-                    supportingText = stringResource(R.string.download_covers_desc),
-                    icon = Icons.Default.CloudDownload,
-                    position = SectionPosition.MIDDLE,
-                    trailingContent = {
-                        Switch(
-                            checked = showDownloadCovers,
-                            onCheckedChange = {
-                                showDownloadCovers = it
-                                settingsManager.downloadCovers = it
-                            },
-                            thumbContent = if (showDownloadCovers) {
-                                {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            } else null
-                        )
-                    }
-                )
+
                 SettingsPreferenceItem(
                     headlineText = stringResource(R.string.cinematic_player),
                     supportingText = stringResource(R.string.cinematic_player_desc),

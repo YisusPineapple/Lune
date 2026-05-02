@@ -9,8 +9,7 @@
     <string name="author">Autor</string>
     <string name="hifi_audio">Audio Hi-Fi</string>
     <string name="hifi_desc">Activar detección e insignias Hi-Fi</string>
-    <string name="download_covers">Descargar carátulas</string>
-    <string name="download_covers_desc">Descargar carátulas de internet si faltan</string>
+
     <string name="general">General</string>
     <string name="cinematic_player">Reproductor Cinemático</string>
     <string name="cinematic_player_desc">Habilita una interfaz inmersiva con carátula en movimiento y degradado suave.</string>
@@ -150,7 +149,7 @@
     <!-- Open Source Libraries -->
     <string name="open_source_libraries">Bibliotecas de Código Abierto</string>
     <string name="coil_desc">Carga de imágenes para Android respaldada por Kotlin Coroutines.\nLicencia: Apache License 2.0</string>
-    <string name="okhttp_desc">Cliente HTTP y HTTP/2 para aplicaciones Android y Java.\nLicencia: Apache License 2.0</string>
+
     <string name="gson_desc">Biblioteca de serialización/deserialización de Java para convertir objetos Java a JSON y viceversa.\nLicencia: Apache License 2.0</string>
     <string name="room_desc">La biblioteca de persistencia Room proporciona una capa de abstracción sobre SQLite.\nLicencia: Apache License 2.0</string>
     <string name="compose_desc">El moderno kit de herramientas de Android para crear interfaces de usuario nativas.\nLicencia: Apache License 2.0</string>
@@ -163,8 +162,7 @@
     <string name="perm_storage_desc">Necesario para escanear archivos de música y gestionar carpetas en tu dispositivo.</string>
     <string name="perm_notifications_title">Notificaciones</string>
     <string name="perm_notifications_desc">Requerido para mostrar controles de reproducción e información en la barra de notificaciones.</string>
-    <string name="perm_internet_title">Internet</string>
-    <string name="perm_internet_desc">Utilizado para obtener carátulas de álbumes e información de artistas de fuentes externas.</string>
+
     <string name="perm_bluetooth_title">Bluetooth</string>
     <string name="perm_bluetooth_desc">Requerido para detectar y gestionar conexiones con dispositivos de audio bluetooth.</string>
     <string name="perm_audio_service_title">Servicio de Reproducción</string>
@@ -226,7 +224,7 @@
     <string name="onboarding_welcome_back">Bienvenido a Lune</string>
     <string name="onboarding_listen_style">Escucha con estilo</string>
     <string name="onboarding_feature_hifi">Soporte de audio HiFi</string>
-    <string name="onboarding_feature_covers">Descarga de carátulas</string>
+
     <string name="onboarding_feature_title">Título personalizado</string>
     <string name="onboarding_feature_lyrics">Letras dinámicas</string>
     <string name="onboarding_feature_mix">Crossfade y Automix</string>

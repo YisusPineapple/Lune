@@ -91,7 +91,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation("androidx.compose.animation:animation-graphics")
     implementation(libs.coil.compose)
-    implementation(libs.okhttp)
+
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("net.jthink:jaudiotagger:3.0.1")
     

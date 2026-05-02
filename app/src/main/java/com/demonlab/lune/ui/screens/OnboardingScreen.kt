@@ -830,7 +830,7 @@ fun FeaturesStep(onFinish: () -> Unit) {
 
     val features = listOf(
         FeatureItem(stringResource(R.string.onboarding_feature_hifi), Icons.Default.GraphicEq),
-        FeatureItem(stringResource(R.string.onboarding_feature_covers), Icons.Default.Image),
+
         FeatureItem(stringResource(R.string.onboarding_feature_title), Icons.Default.Title),
         FeatureItem(stringResource(R.string.onboarding_feature_lyrics), Icons.Default.Lyrics),
         FeatureItem(stringResource(R.string.onboarding_feature_mix), Icons.Default.AutoAwesome),

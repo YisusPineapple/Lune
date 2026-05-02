@@ -124,11 +124,7 @@ fun PermissionsScreen(onBack: () -> Unit) {
                 description = stringResource(R.string.perm_notifications_desc),
                 icon = Icons.Default.Notifications
             ),
-            PermissionItem(
-                title = stringResource(R.string.perm_internet_title),
-                description = stringResource(R.string.perm_internet_desc),
-                icon = Icons.Default.Language
-            ),
+
             PermissionItem(
                 title = stringResource(R.string.perm_bluetooth_title),
                 description = stringResource(R.string.perm_bluetooth_desc),

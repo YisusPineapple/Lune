@@ -9,8 +9,7 @@
     <string name="author">Author</string>
     <string name="hifi_audio">Hi-Fi Audio</string>
     <string name="hifi_desc">Enable Hi-Fi detection and badges</string>
-    <string name="download_covers">Download Covers</string>
-    <string name="download_covers_desc">Fetch album art from internet if missing</string>
+
     <string name="general">General</string>
     <string name="cinematic_player">Cinematic Player</string>
     <string name="cinematic_player_desc">Enables an immersive interface with moving cover art and smooth gradients.</string>
@@ -151,7 +150,7 @@
     <!-- Open Source Libraries -->
     <string name="open_source_libraries">Open Source Libraries</string>
     <string name="coil_desc">Image loading for Android backed by Kotlin Coroutines.\nLicense: Apache License 2.0</string>
-    <string name="okhttp_desc">HTTP &amp; HTTP/2 client for Android and Java applications.\nLicense: Apache License 2.0</string>
+
     <string name="gson_desc">A Java serialization/deserialization library to convert Java Objects into JSON and back.\nLicense: Apache License 2.0</string>
     <string name="room_desc">The Room persistence library provides an abstraction layer over SQLite.\nLicense: Apache License 2.0</string>
     <string name="compose_desc">Android’s modern toolkit for building native UI.\nLicense: Apache License 2.0</string>
@@ -164,8 +163,7 @@
     <string name="perm_storage_desc">Needed to scan for music files and manage folders on your device.</string>
     <string name="perm_notifications_title">Notifications</string>
     <string name="perm_notifications_desc">Required to show playback controls and information in the notification bar.</string>
-    <string name="perm_internet_title">Internet</string>
-    <string name="perm_internet_desc">Used to fetch album art and artist information from external sources.</string>
+
     <string name="perm_bluetooth_title">Bluetooth</string>
     <string name="perm_bluetooth_desc">Required to detect and manage connections with bluetooth audio devices.</string>
     <string name="perm_audio_service_title">Playback Service</string>
@@ -227,7 +225,7 @@
     <string name="onboarding_welcome_back">Welcome to Lune</string>
     <string name="onboarding_listen_style">Listen with style</string>
     <string name="onboarding_feature_hifi">HiFi Audio Support</string>
-    <string name="onboarding_feature_covers">Cover Art Downloads</string>
+
     <string name="onboarding_feature_title">Customizable Title</string>
     <string name="onboarding_feature_lyrics">Dynamic Lyrics</string>
     <string name="onboarding_feature_mix">Crossfade &amp; Automix</string>

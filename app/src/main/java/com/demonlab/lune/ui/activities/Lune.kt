@@ -137,7 +137,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
-import com.demonlab.lune.tools.CoverProvider
+
 import com.demonlab.lune.tools.MusicProvider
 import com.demonlab.lune.tools.PlaybackManager
 import com.demonlab.lune.tools.SettingsManager
@@ -1399,8 +1399,6 @@ fun SongItem(
 ) {
     val context = LocalContext.current
     val settingsManager = remember { SettingsManager.getInstance(context) }
-    val coverProvider = remember { CoverProvider() }
-    var onlineCoverUrl by remember { mutableStateOf<String?>(null) }
     
     val infiniteTransition = rememberInfiniteTransition(label = "PlayingIndicatorRotation")
     val rotation by infiniteTransition.animateFloat(
@@ -1413,34 +1411,6 @@ fun SongItem(
         label = "LogoRotation"
     )
 
-    LaunchedEffect(song.id) {
-        if (settingsManager.downloadCovers && song.coverUrl == null) {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                var localCoverExists = false
-                if (song.albumArtUri != null) {
-                    try {
-                        val pfd = context.contentResolver.openFileDescriptor(song.albumArtUri!!, "r")
-                        pfd?.close()
-                        localCoverExists = pfd != null
-                    } catch (e: Exception) {
-                        localCoverExists = false
-                    }
-                }
-                
-                if (!localCoverExists) {
-                    val fetchedUrl = coverProvider.fetchCoverUrl(song.artist, song.title)
-                    if (fetchedUrl != null) {
-                        val localUri = coverProvider.downloadAndSaveCover(context, song.id, fetchedUrl)
-                        if (localUri != null) {
-                            val metadataManager = MetadataManager(context)
-                            metadataManager.updateCoverUrl(song.id, localUri)
-                            onlineCoverUrl = localUri
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     val shape = if (isFirst && isLast) {
         RoundedCornerShape(28.dp)
@@ -1504,7 +1474,7 @@ fun SongItem(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.size(48.dp)
                 ) {
-                    val model = song.coverUrl ?: onlineCoverUrl ?: song.albumArtUri
+                    val model = song.coverUrl ?: song.albumArtUri
                     AsyncImage(
                         model = model,
                         contentDescription = null,
@@ -2091,38 +2061,8 @@ fun FullPlayer(
     onShowLyrics: () -> Unit
 ) {
     val context = LocalContext.current
-    val coverProvider = remember { CoverProvider() }
     val settingsManager = remember { SettingsManager.getInstance(context) }
-    var onlineCoverUrl by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(song.id) {
-        if (settingsManager.downloadCovers && song.coverUrl == null) {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                var localCoverExists = false
-                if (song.albumArtUri != null) {
-                    try {
-                        val pfd = context.contentResolver.openFileDescriptor(song.albumArtUri, "r")
-                        pfd?.close()
-                        localCoverExists = pfd != null
-                    } catch (e: Exception) {
-                        localCoverExists = false
-                    }
-                }
-                
-                if (!localCoverExists) {
-                    val fetchedUrl = coverProvider.fetchCoverUrl(song.artist, song.title)
-                    if (fetchedUrl != null) {
-                        val localUri = coverProvider.downloadAndSaveCover(context, song.id, fetchedUrl)
-                        if (localUri != null) {
-                            val metadataManager = MetadataManager(context)
-                            metadataManager.updateCoverUrl(song.id, localUri)
-                            onlineCoverUrl = localUri
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     val activity = context as? Activity
     
@@ -2232,7 +2172,7 @@ fun FullPlayer(
         if (isCinematic) {
             // Cinematic Background (Ken Burns + Gradient)
             AsyncImage(
-                model = song.coverUrl ?: onlineCoverUrl ?: song.albumArtUri,
+                model = song.coverUrl ?: song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2321,7 +2261,7 @@ fun FullPlayer(
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     AsyncImage(
-                        model = song.coverUrl ?: onlineCoverUrl ?: song.albumArtUri,
+                        model = song.coverUrl ?: song.albumArtUri,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
