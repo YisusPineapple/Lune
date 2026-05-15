@@ -132,7 +132,8 @@ fun SettingsScreen(onBack: () -> Unit) {
                         "system" to stringResource(R.string.lang_system),
                         "en" to stringResource(R.string.lang_english),
                         "es" to stringResource(R.string.lang_spanish),
-                        "pt-BR" to stringResource(R.string.lang_portuguese)
+                        "pt-BR" to stringResource(R.string.lang_portuguese),
+                        "fr" to stringResource(R.string.lang_french)
                     )
                     languages.forEach { (code, label) ->
                         Row(
@@ -313,6 +314,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                         "en" -> stringResource(R.string.lang_english)
                         "es" -> stringResource(R.string.lang_spanish)
                         "pt-BR" -> stringResource(R.string.lang_portuguese)
+                        "fr" -> stringResource(R.string.lang_french)
                         else -> stringResource(R.string.lang_system)
                     },
                     icon = Icons.Default.Language,
