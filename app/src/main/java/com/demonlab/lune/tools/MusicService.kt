@@ -10,6 +10,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.demonlab.lune.R
@@ -413,7 +414,7 @@ class MusicService : Service() {
     }
 
     private suspend fun fetchAlbumArt(song: Song): android.graphics.Bitmap? {
-        val loader = ImageLoader(this)
+        val loader = this.imageLoader
         val request = ImageRequest.Builder(this)
             .data(song.coverUrl ?: song.albumArtUri)
             .allowHardware(false)

@@ -168,10 +168,14 @@ class MusicProvider(private val context: Context) {
                     id
                 )
                 
-                val albumArtUri = ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
-                    albumId
-                )
+                val albumArtUri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    contentUri
+                } else {
+                    ContentUris.withAppendedId(
+                        Uri.parse("content://media/external/audio/albumart"),
+                        albumId
+                    )
+                }
 
                 songList.add(Song(id, albumId, title, artist, album, duration, contentUri, data, dateAdded, albumArtUri, genre, folderName, isHiFi, coverUrl, isFavorite, null))
             }

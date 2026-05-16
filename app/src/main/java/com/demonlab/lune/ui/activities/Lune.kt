@@ -5024,7 +5024,7 @@ fun SearchScreen(
                                 supportingContent = { Text("${album.songs.size} canciones") },
                                 leadingContent = {
                                     AsyncImage(
-                                        model = album.songs.firstOrNull()?.let { getAlbumArtUri(it.albumId) } ?: R.drawable.ic_launcher_foreground,
+                                        model = album.songs.firstOrNull()?.albumArtUri ?: R.drawable.ic_launcher_foreground,
                                         contentDescription = null,
                                         modifier = Modifier
                                             .size(50.dp)
@@ -5230,12 +5230,7 @@ fun PlaylistOptionsSheet(
 }
 
 
-fun getAlbumArtUri(albumId: Long): Uri {
-    return ContentUris.withAppendedId(
-        Uri.parse("content://media/external/audio/albumart"),
-        albumId
-    )
-}
+
 
 @Composable
 fun ScrollToCurrentButton(
