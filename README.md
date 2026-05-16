@@ -90,6 +90,12 @@ Lune is designed to be fully open-source and compatible with F-Droid's build sta
 - **Pure Gradle Build**: No proprietary pre-compiled binaries.
 - **Standard Metadata**: Compatible with F-Droid build recipes.
 
+## 💰 Donation
+
+If you would like to support the development of Lune, you can do so through the following platforms:
+
+- **PayPal**: [https://www.paypal.com/paypalme/TommyZambrano](https://www.paypal.com/paypalme/TommyZambrano)
+
 ## 🤝 Credits
 
 - **MrDemonc**: Project Creator & Lead Developer.
