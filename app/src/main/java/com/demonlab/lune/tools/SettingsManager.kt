@@ -143,6 +143,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getInt("custom_color_palette", 0)
         set(value) = prefs.edit().putInt("custom_color_palette", value).apply()
 
+    var showBackupWarning: Boolean
+        get() = prefs.getBoolean("show_backup_warning", true)
+        set(value) = prefs.edit().putBoolean("show_backup_warning", value).apply()
+
     fun getPlaylistShuffle(playlistId: Long): Boolean {
         return prefs.getBoolean("shuffle_playlist_$playlistId", false)
     }

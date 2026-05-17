@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.*
@@ -108,6 +110,7 @@ fun SettingsScreen(
     var isCinematicEnabled by remember { mutableStateOf(settingsManager.isCinematicPlayerEnabled) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showCustomizationScreen by remember { mutableStateOf(false) }
+    var showBackupWarning by remember { mutableStateOf(settingsManager.showBackupWarning) }
     val currentLanguage = settingsManager.language
     val scope = rememberCoroutineScope()
     val backupManager = remember { PlaylistBackupManager(context) }
@@ -331,6 +334,15 @@ fun SettingsScreen(
 
             // Backup Section
             SettingsSection(title = stringResource(R.string.backup)) {
+                if (showBackupWarning) {
+                    BackupWarningCard(
+                        onDismiss = {
+                            showBackupWarning = false
+                            settingsManager.showBackupWarning = false
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 SettingsPreferenceItem(
                     headlineText = stringResource(R.string.export_playlists),
                     supportingText = stringResource(R.string.export_playlists_desc),
@@ -647,6 +659,66 @@ fun CustomizationScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun BackupWarningCard(onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFFDE8E8), // Beautiful soft red background (pastel red)
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF8B4B4))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color(0xFF9B1C1C), // Stronger red for icon
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(com.demonlab.lune.R.string.backup_warning_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF9B1C1C) // Nice contrast text color
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(com.demonlab.lune.R.string.backup_warning_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9B1C1C).copy(alpha = 0.85f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFBD5D5)) // Slightly darker soft red for button background
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color(0xFF9B1C1C),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

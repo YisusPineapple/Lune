@@ -175,6 +175,8 @@
     <string name="perm_record_audio_desc">Necesario para que el visualizador de audio procese y muestre datos de frecuencia en tiempo real.</string>
 
     <!-- Playlist Export/Import -->
+    <string name="backup_warning_title">Aviso Importante</string>
+    <string name="backup_warning_desc">Lune solo importa listas pre-exportadas por esta aplicación. Asegúrate de tener los archivos de música correspondientes en este dispositivo para una correcta reproducción.</string>
     <string name="export_playlists">Exportar Listas</string>
     <string name="export_playlists_desc">Guardar tus listas en un archivo</string>
     <string name="import_playlists">Importar Listas</string>
