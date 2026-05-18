@@ -12,5 +12,5 @@ Lune is a minimalist and elegant music player for Android, designed with a focus
 - Vizulizer
 - Sample button theme
 - HI-FI audio
-- Custom tittle
-- Cover download
+- Customizations
+- Support Android Auto
