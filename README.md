@@ -101,12 +101,19 @@ keyPassword=password
    ```
    The output APK will be available at: `app/build/outputs/apk/release/Lune-release.apk`
 
+## Other donation option
+
+### ☕ Monero (XMR)
+
+monero:88s5Re4p6a3P9TtqaG1G2Yeq5Ppp1w1npXebyLjktuxYgurFAGn4GRbKuPKGbx1pD1bBwohtAriL7JqB12ECp4SnMN1T3q9
+
 ## 🤝 Credits
 
 - **MrDemonc**: Project Creator & Lead Developer.
 - **Desukia**: Design testing and UX feedback.
 
 ---
+
 <p align=center>
   <b><i></b>💫Lune - Listen with style💫</i></b>
 </p>
