@@ -2824,6 +2824,30 @@ fun FullPlayer(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .fillMaxWidth()
+                        .scale(coverScale)
+                        .pointerInput(Unit) {
+                            var totalDragX = 0f
+                            var gestureConsumed = false
+                            detectDragGestures(
+                                onDragStart = {
+                                    totalDragX = 0f
+                                    gestureConsumed = false
+                                },
+                                onDrag = { _, dragAmount ->
+                                    if (!gestureConsumed) {
+                                        totalDragX += dragAmount.x
+                                        val absX = kotlin.math.abs(totalDragX)
+                                        val absY = kotlin.math.abs(dragAmount.y)
+                                        // Horizontal swipe only (covers next/previous)
+                                        if (absX > 60 && absX > absY * 1.5f) {
+                                            if (totalDragX < 0) onNext() else onPrevious()
+                                            gestureConsumed = true
+                                        }
+                                    }
+                                }
+                            )
+                        },
+   
                 )
             } else {
                 // Classic Header Spacer
