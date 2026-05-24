@@ -21,6 +21,8 @@
     <string name="bass_label">BASSES</string>
     <string name="spatial_audio_label">Audio Spatial</string>
     <string name="restore_defaults">Restaurer par défaut</string>
+    <string name="disabled">Désactivé</string>
+    <string name="open_queue">Ouvrir la file d\'attente</string>
 
     <!-- EQ Bands -->
     <string name="band_sub_bass">Sub-basses</string>

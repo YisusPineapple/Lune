@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,28 +42,11 @@ class GestureCustomizationActivity : ComponentActivity() {
                 else -> systemInDarkTheme
             }
 
-            var useCustomColors by remember { mutableStateOf(settingsManager.useCustomColors) }
-            var customColorPalette by remember { mutableIntStateOf(settingsManager.customColorPalette) }
-            var useAmoledPitchBlack by remember { mutableStateOf(settingsManager.useAmoledPitchBlack) }
-
-            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-            DisposableEffect(lifecycleOwner) {
-                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                        useCustomColors = settingsManager.useCustomColors
-                        customColorPalette = settingsManager.customColorPalette
-                        useAmoledPitchBlack = settingsManager.useAmoledPitchBlack
-                    }
-                }
-                lifecycleOwner.lifecycle.addObserver(observer)
-                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-            }
-
             LuneTheme(
                 darkTheme = targetDarkTheme,
-                useCustomColors = useCustomColors,
-                customColorPalette = customColorPalette,
-                useAmoledPitchBlack = useAmoledPitchBlack
+                useCustomColors = settingsManager.useCustomColors,
+                customColorPalette = settingsManager.customColorPalette,
+                useAmoledPitchBlack = settingsManager.useAmoledPitchBlack
             ) {
                 GestureCustomizationScreen(
                     onBack = { finish() },
@@ -79,7 +63,9 @@ fun GestureCustomizationScreen(
     onBack: () -> Unit,
     settingsManager: SettingsManager
 ) {
-    var isGesturesEnabled by remember { mutableStateOf(false) }
+    var isGesturesEnabled by remember { mutableStateOf(settingsManager.isGesturesEnabled) }
+    var swipeUpAction by remember { mutableIntStateOf(settingsManager.swipeUpAction) }
+    var showSwipeUpOptions by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -138,7 +124,10 @@ fun GestureCustomizationScreen(
                     trailingContent = {
                         Switch(
                             checked = isGesturesEnabled,
-                            onCheckedChange = { isGesturesEnabled = it },
+                            onCheckedChange = { 
+                                isGesturesEnabled = it 
+                                settingsManager.isGesturesEnabled = it
+                            },
                             thumbContent = {
                                 Icon(
                                     imageVector = if (isGesturesEnabled) Icons.Default.Check else Icons.Default.Close,
@@ -155,8 +144,52 @@ fun GestureCustomizationScreen(
                     supportingText = stringResource(R.string.change_gesture_desc),
                     icon = Icons.Default.SwipeUp,
                     position = SectionPosition.LAST,
-                    onClick = { /* TODO */ }
+                    onClick = { showSwipeUpOptions = true }
                 )
+            }
+        }
+        
+        if (showSwipeUpOptions) {
+            val swipeUpOptions = listOf(
+                stringResource(R.string.disabled),
+                stringResource(R.string.open_queue),
+                stringResource(R.string.eq_title),
+                stringResource(R.string.add_to_playlist),
+                stringResource(R.string.option_share)
+            )
+            ModalBottomSheet(
+                onDismissRequest = { showSwipeUpOptions = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                    Text(
+                        text = stringResource(R.string.change_gesture),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    swipeUpOptions.forEachIndexed { index, title ->
+                        val isSelected = swipeUpAction == index
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    swipeUpAction = index
+                                    settingsManager.swipeUpAction = index
+                                    showSwipeUpOptions = false
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(text = title)
+                        }
+                    }
+                }
             }
         }
     }

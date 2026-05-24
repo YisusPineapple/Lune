@@ -2616,6 +2616,20 @@ fun FullPlayer(
 
     val activity = context as? Activity
     
+    var isGesturesEnabled by remember { mutableStateOf(settingsManager.isGesturesEnabled) }
+    var swipeUpAction by remember { mutableIntStateOf(settingsManager.swipeUpAction) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isGesturesEnabled = settingsManager.isGesturesEnabled
+                swipeUpAction = settingsManager.swipeUpAction
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    
     val isCinematic = settingsManager.isCinematicPlayerEnabled
     
     DisposableEffect(isCinematic) {
@@ -2647,6 +2661,7 @@ fun FullPlayer(
     var showQueueSheet by remember { mutableStateOf(false) }
     var showOptionsSheet by remember { mutableStateOf(false) }
     var showAddToPlaylistInPlayer by remember { mutableStateOf(false) }
+    var showEqSheet by remember { mutableStateOf(false) }
     var showVolumeBar by remember { mutableStateOf(false) }
     var showVisualizerSettings by remember { mutableStateOf(false) }
     
@@ -2802,9 +2817,37 @@ fun FullPlayer(
                                 totalDragY += dragAmount.y
                                 val absY = kotlin.math.abs(totalDragY)
                                 val absX = kotlin.math.abs(dragAmount.x)
-                                // Vertical swipe downward only → minimize
-                                if (absY > 60 && absY > absX * 1.5f && totalDragY > 0) {
-                                    onMinimize()
+                                // Vertical swipe processing
+                                if (absY > 60 && absY > absX * 1.5f) {
+                                    if (totalDragY > 0) {
+                                        // Swipe down → minimize
+                                        onMinimize()
+                                    } else {
+                                        // Swipe up
+                                        when (swipeUpAction) {
+                                            1 -> showQueueSheet = true
+                                            2 -> showEqSheet = true
+                                            3 -> showAddToPlaylistInPlayer = true
+                                            4 -> {
+                                                try {
+                                                    val file = java.io.File(song.path)
+                                                    if (file.exists()) {
+                                                        val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                                                            context,
+                                                            "com.demonlab.lune.fileprovider",
+                                                            file
+                                                        )
+                                                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                            type = "audio/*"
+                                                            putExtra(android.content.Intent.EXTRA_STREAM, contentUri)
+                                                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        }
+                                                        context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.option_share)))
+                                                    }
+                                                } catch (e: Exception) {}
+                                            }
+                                        }
+                                    }
                                     gestureConsumed = true
                                 }
                             }
@@ -2825,28 +2868,11 @@ fun FullPlayer(
                         .aspectRatio(1f)
                         .fillMaxWidth()
                         .scale(coverScale)
-                        .pointerInput(Unit) {
-                            var totalDragX = 0f
-                            var gestureConsumed = false
-                            detectDragGestures(
-                                onDragStart = {
-                                    totalDragX = 0f
-                                    gestureConsumed = false
-                                },
-                                onDrag = { _, dragAmount ->
-                                    if (!gestureConsumed) {
-                                        totalDragX += dragAmount.x
-                                        val absX = kotlin.math.abs(totalDragX)
-                                        val absY = kotlin.math.abs(dragAmount.y)
-                                        // Horizontal swipe only (covers next/previous)
-                                        if (absX > 60 && absX > absY * 1.5f) {
-                                            if (totalDragX < 0) onNext() else onPrevious()
-                                            gestureConsumed = true
-                                        }
-                                    }
-                                }
-                            )
-                        },
+                        .songSwipeGestures(
+                            enabled = isGesturesEnabled,
+                            onNext = onNext,
+                            onPrevious = onPrevious
+                        ),
    
                 )
             } else {
@@ -2859,28 +2885,11 @@ fun FullPlayer(
                         .fillMaxWidth()
                         .aspectRatio(1f)
                         .scale(coverScale)
-                        .pointerInput(Unit) {
-                            var totalDragX = 0f
-                            var gestureConsumed = false
-                            detectDragGestures(
-                                onDragStart = {
-                                    totalDragX = 0f
-                                    gestureConsumed = false
-                                },
-                                onDrag = { _, dragAmount ->
-                                    if (!gestureConsumed) {
-                                        totalDragX += dragAmount.x
-                                        val absX = kotlin.math.abs(totalDragX)
-                                        val absY = kotlin.math.abs(dragAmount.y)
-                                        // Horizontal swipe only (covers next/previous)
-                                        if (absX > 60 && absX > absY * 1.5f) {
-                                            if (totalDragX < 0) onNext() else onPrevious()
-                                            gestureConsumed = true
-                                        }
-                                    }
-                                }
-                            )
-                        },
+                        .songSwipeGestures(
+                            enabled = isGesturesEnabled,
+                            onNext = onNext,
+                            onPrevious = onPrevious
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (coverShape == 2 && coverVinylEffect) {
@@ -3365,6 +3374,13 @@ fun FullPlayer(
                     }
                 )
             }
+        }
+
+        if (showEqSheet) {
+            EqBottomSheet(
+                playbackManager = playbackManager,
+                onDismiss = { showEqSheet = false }
+            )
         }
 
         if (showVisualizerSettings) {
@@ -6240,3 +6256,36 @@ fun ReusableSkipIcon(
         }
     }
 }
+
+fun Modifier.songSwipeGestures(
+    enabled: Boolean,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit
+): Modifier = this.then(
+    if (enabled) {
+        Modifier.pointerInput(Unit) {
+            var totalDragX = 0f
+            var gestureConsumed = false
+            detectDragGestures(
+                onDragStart = {
+                    totalDragX = 0f
+                    gestureConsumed = false
+                },
+                onDrag = { _, dragAmount ->
+                    if (!gestureConsumed) {
+                        totalDragX += dragAmount.x
+                        val absX = kotlin.math.abs(totalDragX)
+                        val absY = kotlin.math.abs(dragAmount.y)
+                        // Horizontal swipe only (covers next/previous)
+                        if (absX > 60 && absX > absY * 1.5f) {
+                            if (totalDragX < 0) onNext() else onPrevious()
+                            gestureConsumed = true
+                        }
+                    }
+                }
+            )
+        }
+    } else {
+        Modifier
+    }
+)

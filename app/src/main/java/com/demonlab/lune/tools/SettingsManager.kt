@@ -139,6 +139,14 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("is_haptic_vibration_enabled", true)
         set(value) = prefs.edit().putBoolean("is_haptic_vibration_enabled", value).apply()
 
+    var isGesturesEnabled: Boolean
+        get() = prefs.getBoolean("is_gestures_enabled", false)
+        set(value) = prefs.edit().putBoolean("is_gestures_enabled", value).apply()
+
+    var swipeUpAction: Int
+        get() = prefs.getInt("swipe_up_action", 0)
+        set(value) = prefs.edit().putInt("swipe_up_action", value).apply()
+
     var dailyListeningTime: Long
         get() = prefs.getLong("daily_listening_time", 0L)
         set(value) = prefs.edit().putLong("daily_listening_time", value).apply()

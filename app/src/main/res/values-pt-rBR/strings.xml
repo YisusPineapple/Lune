@@ -21,6 +21,8 @@
     <string name="bass_label">GRAVES</string>
     <string name="spatial_audio_label">Áudio Espacial</string>
     <string name="restore_defaults">Restaurar padrões</string>
+    <string name="disabled">Desativado</string>
+    <string name="open_queue">Abrir fila</string>
     
     <!-- EQ Bands -->
     <string name="band_sub_bass">Sub Grave</string>
