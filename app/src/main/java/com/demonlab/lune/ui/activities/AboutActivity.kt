@@ -147,14 +147,16 @@ fun AboutScreen() {
                     ),
                     label = "diamond_rotation"
                 )
-
                 Icon(
                     painter = painterResource(id = R.drawable.ic_logo_diamonds),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     modifier = Modifier
                         .fillMaxSize()
-                        .rotate(rotation)
+                        .graphicsLayer {
+                            // Direct GPU-driven rotation, zero UI-thread overhead
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     painter = painterResource(id = R.drawable.ic_logo_note),
