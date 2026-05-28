@@ -182,6 +182,18 @@
     <string name="enable_gestures_desc">Ativa os gestos no reprodutor</string>
     <string name="change_gesture">Alterar gesto</string>
     <string name="change_gesture_desc">Alterar gesto para cima</string>
+    <string name="blur">Desfoque</string>
+    <string name="blur_desc">Configurar o efeito de desfoque de fundo</string>
+    <string name="enable_blur">Ativar desfoque</string>
+    <string name="enable_blur_desc">Mostrar a capa como fundo borrado</string>
+    <string name="blur_dark_mode">Modo escuro</string>
+    <string name="blur_dark_mode_desc">Mostrar efeito borrado no modo escuro</string>
+    <string name="blur_light_mode">Modo claro</string>
+    <string name="blur_light_mode_desc">Mostrar efeito borrado no modo claro</string>
+    <string name="blur_cinematic_mode">Modo cinemático</string>
+    <string name="blur_cinematic_mode_desc">Mostrar efeito borrado no modo cinemático</string>
+    <string name="blur_controls">Controles</string>
+    <string name="blur_controls_desc">Adaptar cores para harmonizar com o fundo borrado</string>
     <string name="other">Outros</string>
 
     <!-- Users -->

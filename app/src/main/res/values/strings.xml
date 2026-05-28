@@ -183,6 +183,18 @@
     <string name="enable_gestures_desc">Activate gesture controls in player</string>
     <string name="change_gesture">Change gesture</string>
     <string name="change_gesture_desc">Change swipe up gesture</string>
+    <string name="blur">Blur</string>
+    <string name="blur_desc">Configure the background blur effect</string>
+    <string name="enable_blur">Enable blur</string>
+    <string name="enable_blur_desc">Show album art as blurred background</string>
+    <string name="blur_dark_mode">Dark mode</string>
+    <string name="blur_dark_mode_desc">Show blur effect in dark mode</string>
+    <string name="blur_light_mode">Light mode</string>
+    <string name="blur_light_mode_desc">Show blur effect in light mode</string>
+    <string name="blur_cinematic_mode">Cinematic mode</string>
+    <string name="blur_cinematic_mode_desc">Show blur effect in cinematic mode</string>
+    <string name="blur_controls">Controls</string>
+    <string name="blur_controls_desc">Adapt colors to harmonize with the blur background</string>
     <string name="other">Other</string>
 
     <!-- Users -->

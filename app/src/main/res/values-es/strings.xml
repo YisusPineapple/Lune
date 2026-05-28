@@ -182,6 +182,18 @@
     <string name="enable_gestures_desc">Activa los gestos en el reproductor</string>
     <string name="change_gesture">Cambiar gesto</string>
     <string name="change_gesture_desc">Cambiar gesto hacia arriba</string>
+    <string name="blur">Desenfoque</string>
+    <string name="blur_desc">Configurar el efecto de desenfoque de fondo</string>
+    <string name="enable_blur">Activar desenfoque</string>
+    <string name="enable_blur_desc">Mostrar la carátula como fondo borroso</string>
+    <string name="blur_dark_mode">Modo oscuro</string>
+    <string name="blur_dark_mode_desc">Mostrar efecto borroso en modo oscuro</string>
+    <string name="blur_light_mode">Modo claro</string>
+    <string name="blur_light_mode_desc">Mostrar efecto borroso en modo claro</string>
+    <string name="blur_cinematic_mode">Modo cinemático</string>
+    <string name="blur_cinematic_mode_desc">Mostrar efecto borroso en modo cinemático</string>
+    <string name="blur_controls">Controles</string>
+    <string name="blur_controls_desc">Adaptar colores para armonizar con el fondo borroso</string>
     <string name="other">Otros</string>
 
     <!-- Users -->

@@ -79,6 +79,11 @@
             android:exported="false"
             android:label="@string/gesture"
             android:theme="@style/Theme.Lune" />
+        <activity
+            android:name=".ui.activities.BlurCustomizationActivity"
+            android:exported="false"
+            android:label="@string/blur"
+            android:theme="@style/Theme.Lune" />
 
         <service
             android:name=".tools.MusicService"

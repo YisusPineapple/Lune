@@ -69,6 +69,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.draw.alpha
@@ -2783,6 +2785,14 @@ fun FullPlayer(
         else -> isSystemDark
     }
 
+    val hasBlurBackground = settingsManager.isBlurEnabled &&
+        (if (isCinematic) settingsManager.isBlurCinematicMode
+        else if (isDarkTheme) settingsManager.isBlurDarkMode else settingsManager.isBlurLightMode)
+    val useBlurControls = hasBlurBackground && settingsManager.isBlurControlsEnabled
+
+    val blurContainerColor = if (isDarkTheme) Color.Black.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.4f)
+    val blurPlayContainerColor = if (isDarkTheme) Color.Black.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.5f)
+
     val infiniteSpinTransition = rememberInfiniteTransition(label = "PlayerCoverSpin")
     val spinRotation by infiniteSpinTransition.animateFloat(
         initialValue = 0f,
@@ -2800,78 +2810,125 @@ fun FullPlayer(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface) // Opaque base
     ) {
-        if (isCinematic) {
-            // Cinematic Background (Ken Burns + Gradient)
-            AsyncImage(
-                model = song.coverUrl ?: song.albumArtUri,
-                contentDescription = null,
-                modifier = (if (isLandscape) {
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.55f)
-                        .align(Alignment.CenterStart)
-                } else {
-                    Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.6f)
-                        .align(Alignment.TopCenter)
-                }).clipToBounds()
-                    .graphicsLayer {
-                        val baseScale = scale - 1f
-                        val maxTransX = (size.width * baseScale) / 2f
-                        val maxTransY = (size.height * baseScale) / 2f
-                        val targetTransX = (0.5f - focalPoint.x) * size.width * baseScale + (offsetX * baseScale)
-                        val targetTransY = (0.5f - focalPoint.y) * size.height * baseScale + (offsetY * baseScale)
-                        translationX = targetTransX.coerceIn(-maxTransX, maxTransX)
-                        translationY = targetTransY.coerceIn(-maxTransY, maxTransY)
-                        scaleX = scale
-                        scaleY = scale
-                    },
-                contentScale = ContentScale.Crop
-            )
-
-            val surf = MaterialTheme.colorScheme.surface
-            val mAlpha = if (isDarkTheme) 0.6f else 0.3f
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        if (isLandscape) {
-                            Brush.horizontalGradient(
-                                0.00f to Color.Transparent,
-                                0.30f to Color.Transparent,
-                                0.45f to surf.copy(alpha = mAlpha * 0.3f),
-                                0.50f to surf.copy(alpha = mAlpha * 0.8f),
-                                0.55f to surf,
-                                1.00f to surf
-                            )
-                        } else {
-                            Brush.verticalGradient(
-                                0.00f to Color.Transparent,
-                                0.10f to Color.Transparent,
-                                0.25f to surf.copy(alpha = mAlpha * 0.2f),
-                                0.35f to surf.copy(alpha = mAlpha * 0.5f),
-                                0.42f to surf.copy(alpha = mAlpha * 0.85f),
-                                0.48f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.4f),
-                                0.52f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.75f),
-                                0.56f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.9f),
-                                0.60f to surf,
-                                1.00f to surf
-                            )
-                        }
-                    )
-            )
-        } else if (isDarkTheme) {
-            // Classic Dark Background (Blurred Image)
+        // Blurred background for non-cinematic mode
+        if (!isCinematic && hasBlurBackground) {
             AsyncImage(
                 model = song.coverUrl ?: song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(80.dp)
-                    .alpha(0.2f),
+                    .alpha(if (isDarkTheme) 0.2f else 0.35f),
                 contentScale = ContentScale.Crop
             )
+            if (!isDarkTheme) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.12f))
+                )
+            }
+        }
+
+        if (isCinematic) {
+            val cinematicTransform: @Composable (Modifier) -> Modifier = { mod ->
+                mod.clipToBounds().graphicsLayer {
+                    val baseScale = scale - 1f
+                    val maxTransX = (size.width * baseScale) / 2f
+                    val maxTransY = (size.height * baseScale) / 2f
+                    val targetTransX = (0.5f - focalPoint.x) * size.width * baseScale + (offsetX * baseScale)
+                    val targetTransY = (0.5f - focalPoint.y) * size.height * baseScale + (offsetY * baseScale)
+                    translationX = targetTransX.coerceIn(-maxTransX, maxTransX)
+                    translationY = targetTransY.coerceIn(-maxTransY, maxTransY)
+                    scaleX = scale
+                    scaleY = scale
+                }
+            }
+
+            // Full-screen cinematic background with Ken Burns
+            AsyncImage(
+                model = song.coverUrl ?: song.albumArtUri,
+                contentDescription = null,
+                modifier = cinematicTransform(Modifier.fillMaxSize()),
+                contentScale = ContentScale.Crop
+            )
+
+            if (hasBlurBackground) {
+                // Blur gradient overlay (fades in from bottom/right)
+                val blurGradientBrush = if (isLandscape) {
+                    Brush.horizontalGradient(
+                        0.00f to Color.Transparent,
+                        0.35f to Color.Transparent,
+                        0.45f to Color.Black.copy(alpha = 0.3f),
+                        0.55f to Color.Black.copy(alpha = 0.6f),
+                        0.70f to Color.Black.copy(alpha = 0.85f),
+                        1.00f to Color.Black.copy(alpha = 0.95f)
+                    )
+                } else {
+                    Brush.verticalGradient(
+                        0.00f to Color.Transparent,
+                        0.35f to Color.Transparent,
+                        0.45f to Color.Black.copy(alpha = 0.3f),
+                        0.55f to Color.Black.copy(alpha = 0.6f),
+                        0.70f to Color.Black.copy(alpha = 0.85f),
+                        1.00f to Color.Black.copy(alpha = 0.95f)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(brush = blurGradientBrush, blendMode = BlendMode.DstIn)
+                        }
+                ) {
+                    AsyncImage(
+                        model = song.coverUrl ?: song.albumArtUri,
+                        contentDescription = null,
+                        modifier = cinematicTransform(
+                            Modifier
+                                .fillMaxSize()
+                                .blur(80.dp)
+                        ),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            } else {
+                // Surface gradient overlay (no blur)
+                val surf = MaterialTheme.colorScheme.surface
+                val mAlpha = if (isDarkTheme) 0.6f else 0.3f
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            if (isLandscape) {
+                                Brush.horizontalGradient(
+                                    0.00f to Color.Transparent,
+                                    0.30f to Color.Transparent,
+                                    0.45f to surf.copy(alpha = mAlpha * 0.3f),
+                                    0.50f to surf.copy(alpha = mAlpha * 0.8f),
+                                    0.55f to surf,
+                                    1.00f to surf
+                                )
+                            } else {
+                                Brush.verticalGradient(
+                                    0.00f to Color.Transparent,
+                                    0.10f to Color.Transparent,
+                                    0.25f to surf.copy(alpha = mAlpha * 0.2f),
+                                    0.35f to surf.copy(alpha = mAlpha * 0.5f),
+                                    0.42f to surf.copy(alpha = mAlpha * 0.85f),
+                                    0.48f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.4f),
+                                    0.52f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.75f),
+                                    0.56f to surf.copy(alpha = mAlpha + (1f - mAlpha) * 0.9f),
+                                    0.60f to surf,
+                                    1.00f to surf
+                                )
+                            }
+                        )
+                )
+            }
         }
 
         val coverSection: @Composable () -> Unit = {
@@ -2958,7 +3015,7 @@ fun FullPlayer(
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
 
@@ -2966,14 +3023,14 @@ fun FullPlayer(
 
                     // Píldora de Artista Alineada a la Izquierda
                     Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(percent = 50),
                         modifier = Modifier.widthIn(max = 280.dp)
                     ) {
                         Text(
                             song.artist,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Start,
@@ -2983,18 +3040,29 @@ fun FullPlayer(
                 }
 
                 // Botón de Favorito a la derecha con animación Surface
-                val surfaceColor = MaterialTheme.colorScheme.surface
-                val luma = surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f
-                val isDark = luma < 0.5f
-                val favBgColor = if (song.isFavorite) {
-                    if (isDark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary
+                val favBgColor = if (useBlurControls) {
+                    blurContainerColor
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    val surfaceColor = MaterialTheme.colorScheme.surface
+                    val luma = surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f
+                    val isDark = luma < 0.5f
+                    if (song.isFavorite) {
+                        if (isDark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    }
                 }
-                val favIconColor = if (song.isFavorite) {
-                    if (isDark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                val favIconColor = if (useBlurControls) {
+                    Color.White
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    val surfaceColor = MaterialTheme.colorScheme.surface
+                    val luma = surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f
+                    val isDark = luma < 0.5f
+                    if (song.isFavorite) {
+                        if (isDark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    }
                 }
 
                 Surface(
@@ -3031,8 +3099,8 @@ fun FullPlayer(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.primary,
+                        trackColor = if (useBlurControls) Color.White.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant,
                         amplitude = { 1f }
                     )
                     
@@ -3058,7 +3126,7 @@ fun FullPlayer(
                                     .graphicsLayer {
                                         rotationZ = if (isPlaying) rotation else 0f
                                     }
-                                    .background(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(5.dp))
+                                    .background(color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(5.dp))
                             )
                         },
                         colors = SliderDefaults.colors(
@@ -3079,13 +3147,13 @@ fun FullPlayer(
                 ) {
                     // Píldora Tiempo Actual (Izquierda)
                     Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(percent = 50)
                     ) {
                         Text(
                             text = formatDuration((song.duration * progress).toLong()),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
@@ -3093,13 +3161,13 @@ fun FullPlayer(
 
                     // Píldora Tiempo Total (Derecha)
                     Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(percent = 50)
                     ) {
                         Text(
                             text = formatDuration(song.duration),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
@@ -3108,12 +3176,16 @@ fun FullPlayer(
             }
 
             val activePrimary = getControlsPrimaryColor(useCustomControlsColor, controlsColorPalette)
-            val activeContainerColor = if (useCustomControlsColor) {
+            val activeContainerColor = if (useBlurControls) {
+                blurContainerColor
+            } else if (useCustomControlsColor) {
                 activePrimary.copy(alpha = 0.2f)
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             }
-            val activeIconTint = if (useCustomControlsColor) {
+            val activeIconTint = if (useBlurControls) {
+                Color.White
+            } else if (useCustomControlsColor) {
                 activePrimary
             } else {
                 MaterialTheme.colorScheme.onSurface
@@ -3145,7 +3217,7 @@ fun FullPlayer(
                 Surface(
                     onClick = onTogglePlay,
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = if (useBlurControls) blurPlayContainerColor else MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(80.dp).bounceClick()
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -3154,7 +3226,7 @@ fun FullPlayer(
                             painter = rememberAnimatedVectorPainter(avd, atEnd = isPlaying),
                             contentDescription = stringResource(R.string.cd_play_pause),
                             modifier = Modifier.size(40.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
@@ -3304,7 +3376,7 @@ fun FullPlayer(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                            color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp)
@@ -3322,6 +3394,7 @@ fun FullPlayer(
                                     label = playbackManager.currentOutputName,
                                     onClick = { showVolumeBar = true },
                                     shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp, topEnd = 4.dp, bottomEnd = 4.dp),
+                                    containerColor = if (useBlurControls) blurContainerColor else null,
                                     modifier = Modifier.weight(1f)
                                 )
 
@@ -3331,6 +3404,7 @@ fun FullPlayer(
                                     label = stringResource(R.string.player_queue),
                                     onClick = { showQueueSheet = true },
                                     shape = RoundedCornerShape(4.dp),
+                                    containerColor = if (useBlurControls) blurContainerColor else null,
                                     modifier = Modifier.weight(1f)
                                 )
 
@@ -3340,6 +3414,7 @@ fun FullPlayer(
                                     label = stringResource(R.string.option_speed),
                                     onClick = { showSpeedBar = true },
                                     shape = RoundedCornerShape(4.dp),
+                                    containerColor = if (useBlurControls) blurContainerColor else null,
                                     modifier = Modifier.weight(1f)
                                 )
         
@@ -3349,6 +3424,7 @@ fun FullPlayer(
                                     label = stringResource(R.string.player_options),
                                     onClick = { showOptionsSheet = true },
                                     shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 28.dp, bottomEnd = 28.dp),
+                                    containerColor = if (useBlurControls) blurContainerColor else null,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -3366,7 +3442,7 @@ fun FullPlayer(
                         .fillMaxWidth()
                         .alpha(0.6f),
                     magnitudes = visualizerData,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -3532,16 +3608,18 @@ fun PlayerActionButton(
     onClick: () -> Unit,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(16.dp),
     isActive: Boolean = false,
+    containerColor: androidx.compose.ui.graphics.Color? = null,
     modifier: Modifier = Modifier
 ) {
-    // Detectamos si el esquema de la interfaz está en modo oscuro calculando la luminancia del color de fondo (Surface)
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val luma = surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f
-    val isDark = luma < 0.5f
-    val bgColor = if (isActive) {
-        if (isDark) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.tertiary
-    } else {
-        if (isDark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary
+    val bgColor = containerColor ?: run {
+        val surfaceColor = MaterialTheme.colorScheme.surface
+        val luma = surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f
+        val isDark = luma < 0.5f
+        if (isActive) {
+            if (isDark) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.tertiary
+        } else {
+            if (isDark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary
+        }
     }
 
     Surface(

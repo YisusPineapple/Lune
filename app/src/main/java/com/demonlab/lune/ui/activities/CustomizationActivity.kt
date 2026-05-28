@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import android.content.Intent
 import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.PlayArrow
@@ -392,9 +393,18 @@ fun CustomizationScreen(
                     headlineText = stringResource(R.string.gesture),
                     supportingText = stringResource(R.string.gesture_desc),
                     icon = Icons.Default.Gesture,
-                    position = SectionPosition.SINGLE,
+                    position = SectionPosition.FIRST,
                     onClick = {
                         context.startActivity(Intent(context, GestureCustomizationActivity::class.java))
+                    }
+                )
+                SettingsPreferenceItem(
+                    headlineText = stringResource(R.string.blur),
+                    supportingText = stringResource(R.string.blur_desc),
+                    icon = Icons.Default.BlurOn,
+                    position = SectionPosition.LAST,
+                    onClick = {
+                        context.startActivity(Intent(context, BlurCustomizationActivity::class.java))
                     }
                 )
 

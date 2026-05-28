@@ -155,6 +155,26 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("is_haptic_vibration_enabled", true)
         set(value) = prefs.edit().putBoolean("is_haptic_vibration_enabled", value).apply()
 
+    var isBlurEnabled: Boolean
+        get() = prefs.getBoolean("is_blur_enabled", true)
+        set(value) = prefs.edit().putBoolean("is_blur_enabled", value).apply()
+
+    var isBlurDarkMode: Boolean
+        get() = prefs.getBoolean("is_blur_dark_mode", true)
+        set(value) = prefs.edit().putBoolean("is_blur_dark_mode", value).apply()
+
+    var isBlurLightMode: Boolean
+        get() = prefs.getBoolean("is_blur_light_mode", false)
+        set(value) = prefs.edit().putBoolean("is_blur_light_mode", value).apply()
+
+    var isBlurCinematicMode: Boolean
+        get() = prefs.getBoolean("is_blur_cinematic_mode", false)
+        set(value) = prefs.edit().putBoolean("is_blur_cinematic_mode", value).apply()
+
+    var isBlurControlsEnabled: Boolean
+        get() = prefs.getBoolean("is_blur_controls_enabled", false)
+        set(value) = prefs.edit().putBoolean("is_blur_controls_enabled", value).apply()
+
     var isGesturesEnabled: Boolean
         get() = prefs.getBoolean("is_gestures_enabled", false)
         set(value) = prefs.edit().putBoolean("is_gestures_enabled", value).apply()

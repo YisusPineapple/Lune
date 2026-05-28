@@ -182,6 +182,18 @@
     <string name="enable_gestures_desc">Active les gestes dans le lecteur</string>
     <string name="change_gesture">Changer le geste</string>
     <string name="change_gesture_desc">Changer le geste vers le haut</string>
+    <string name="blur">Flou</string>
+    <string name="blur_desc">Configurer l\'effet de flou d\'arrière-plan</string>
+    <string name="enable_blur">Activer le flou</string>
+    <string name="enable_blur_desc">Afficher la pochette en arrière-plan flouté</string>
+    <string name="blur_dark_mode">Mode sombre</string>
+    <string name="blur_dark_mode_desc">Afficher le flou en mode sombre</string>
+    <string name="blur_light_mode">Mode clair</string>
+    <string name="blur_light_mode_desc">Afficher le flou en mode clair</string>
+    <string name="blur_cinematic_mode">Mode cinématique</string>
+    <string name="blur_cinematic_mode_desc">Afficher le flou en mode cinématique</string>
+    <string name="blur_controls">Contrôles</string>
+    <string name="blur_controls_desc">Adapter les couleurs pour harmoniser avec le flou</string>
     <string name="other">Autres</string>
 
     <!-- Users -->
