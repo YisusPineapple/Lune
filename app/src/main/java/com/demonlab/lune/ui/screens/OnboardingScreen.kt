@@ -114,7 +114,10 @@ fun WelcomeStep(onStartClick: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     painter = painterResource(id = R.drawable.ic_logo_note),
@@ -226,7 +229,10 @@ fun PermissionStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = Icons.Default.Mic,
@@ -363,7 +369,10 @@ fun BluetoothPermissionStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = Icons.Default.Bluetooth,
@@ -500,7 +509,10 @@ fun NotificationPermissionStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = Icons.Default.Notifications,
@@ -626,7 +638,10 @@ fun MusicPermissionStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = Icons.Default.MusicNote,
@@ -757,7 +772,10 @@ fun ManageFilesPermissionStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = Icons.Default.Folder,
@@ -916,7 +934,10 @@ fun FeaturesStep(onFinish: () -> Unit) {
                             tint = diamondsColor,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .graphicsLayer(rotationZ = rotation)
+                                .graphicsLayer {
+                                    // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                                    rotationZ = rotation
+                                }
                         )
                         Icon(
                             painter = painterResource(id = R.drawable.ic_logo_note),
@@ -1122,7 +1143,10 @@ fun PermissionsReminderStep(onNext: () -> Unit) {
                     tint = diamondsColor,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer(rotationZ = rotation)
+                        .graphicsLayer {
+                            // Lambda-based graphicsLayer prevents composition-level redraws on every animation tick
+                            rotationZ = rotation
+                        }
                 )
                 Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Security,
