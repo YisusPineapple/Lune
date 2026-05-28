@@ -310,32 +310,56 @@ fun LyricsScreen(onBack: () -> Unit) {
                     contentPadding = PaddingValues(top = 100.dp, bottom = 300.dp, start = 24.dp, end = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    itemsIndexed(lyricsLines) { index, line ->
-                        val isActive = index == activeIndex
-                        val color by animateColorAsState(
-                            targetValue = if (isActive) Color.White else Color.White.copy(alpha = 0.3f),
-                            animationSpec = tween(300),
-                            label = "LyricColor"
-                        )
-                        val scale by animateFloatAsState(
-                            targetValue = if (isActive) 1.1f else 1.0f,
-                            animationSpec = spring(Spring.DampingRatioMediumBouncy),
-                            label = "LyricScale"
-                        )
-
-                        if (line.text.isBlank()) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    tint = color,
-                                    modifier = Modifier.size(32.dp).graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
+                        itemsIndexed(lyricsLines) { index, line ->
+                            val isActive = index == activeIndex
+                            val colorState = animateColorAsState(
+                                targetValue = if (isActive) Color.White else Color.White.copy(alpha = 0.3f),
+                                animationSpec = tween(250, easing = EaseInOutCubic),
+                                label = "LyricColor"
+                            )
+                            val scaleState = animateFloatAsState(
+                                targetValue = if (isActive) 1.08f else 1.0f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.82f, // Tuned M3E spring for smoother settling
+                                    stiffness = 250f       // Balanced to prevent CPU frame spikes on low-end
+                                ),
+                                label = "LyricScale"
+                            )
+                        
+                            if (line.text.isBlank()) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = colorState.value, // Explictly reading state value
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .graphicsLayer {
+                                                // Deferred reads inside graphicsLayer completely avoid continuous recompositions
+                                                scaleX = scaleState.value
+                                                scaleY = scaleState.value
+                                            }
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = line.text,
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontSize = 24.sp,
+                                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                        textAlign = alignments[textAlignIndex]
+                                    ),
+                                    color = colorState.value, // Explictly reading state value
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer {
+                                            // Deferred reads inside graphicsLayer completely avoid continuous recompositions
+                                            scaleX = scaleState.value
+                                            scaleY = scaleState.value
+                                        }
                                 )
                             }
                         } else {
