@@ -155,6 +155,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("is_haptic_vibration_enabled", true)
         set(value) = prefs.edit().putBoolean("is_haptic_vibration_enabled", value).apply()
 
+    var isSongInfoEnabled: Boolean
+        get() = prefs.getBoolean("is_song_info_enabled", false)
+        set(value) = prefs.edit().putBoolean("is_song_info_enabled", value).apply()
+
     var isBlurEnabled: Boolean
         get() = prefs.getBoolean("is_blur_enabled", true)
         set(value) = prefs.edit().putBoolean("is_blur_enabled", value).apply()

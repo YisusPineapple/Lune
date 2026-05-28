@@ -127,6 +127,8 @@
     <string name="media_player">Lecteur Multimédia</string>
     <string name="haptic_vibration">Vibration haptique</string>
     <string name="haptic_vibration_desc">Vibration subtile lors de l’utilisation des contrôles du lecteur</string>
+    <string name="song_info">Infos de la Chanson</string>
+    <string name="song_info_desc">Afficher le format et le débit binaire dans le lecteur</string>
     <string name="cover_player">Pochette du lecteur</string>
     <string name="cover_player_desc">Personnaliser la forme, la taille et la rotation de la pochette</string>
     <string name="shape_default">Par défaut</string>

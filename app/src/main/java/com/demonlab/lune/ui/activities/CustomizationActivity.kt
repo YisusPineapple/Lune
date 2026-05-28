@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Check
@@ -60,6 +61,7 @@ class CustomizationActivity : ComponentActivity() {
             var customColorPalette by remember { mutableIntStateOf(settingsManager.customColorPalette) }
             var useAmoledPitchBlack by remember { mutableStateOf(settingsManager.useAmoledPitchBlack) }
             var isHapticVibrationEnabled by remember { mutableStateOf(settingsManager.isHapticVibrationEnabled) }
+            var isSongInfoEnabled by remember { mutableStateOf(settingsManager.isSongInfoEnabled) }
             var isCinematicEnabled by remember { mutableStateOf(settingsManager.isCinematicPlayerEnabled) }
 
             LuneTheme(
@@ -75,6 +77,7 @@ class CustomizationActivity : ComponentActivity() {
                     customColorPalette = customColorPalette,
                     useAmoledPitchBlack = useAmoledPitchBlack,
                     isHapticVibrationEnabled = isHapticVibrationEnabled,
+                    isSongInfoEnabled = isSongInfoEnabled,
                     isCinematicEnabled = isCinematicEnabled,
                     onCustomColorsChanged = {
                         useCustomColors = it
@@ -91,6 +94,10 @@ class CustomizationActivity : ComponentActivity() {
                     onHapticChanged = {
                         isHapticVibrationEnabled = it
                         settingsManager.isHapticVibrationEnabled = it
+                    },
+                    onSongInfoChanged = {
+                        isSongInfoEnabled = it
+                        settingsManager.isSongInfoEnabled = it
                     },
                     onCinematicChanged = {
                         isCinematicEnabled = it
@@ -111,11 +118,13 @@ fun CustomizationScreen(
     customColorPalette: Int,
     useAmoledPitchBlack: Boolean,
     isHapticVibrationEnabled: Boolean,
+    isSongInfoEnabled: Boolean,
     isCinematicEnabled: Boolean,
     onCustomColorsChanged: (Boolean) -> Unit,
     onPaletteChanged: (Int) -> Unit,
     onAmoledChanged: (Boolean) -> Unit,
     onHapticChanged: (Boolean) -> Unit,
+    onSongInfoChanged: (Boolean) -> Unit,
     onCinematicChanged: (Boolean) -> Unit
 ) {
     var showCustomTitleDialog by remember { mutableStateOf(false) }
@@ -340,6 +349,26 @@ fun CustomizationScreen(
                             thumbContent = {
                                 Icon(
                                     imageVector = if (isHapticVibrationEnabled) Icons.Default.Check else Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    }
+                )
+
+                SettingsPreferenceItem(
+                    headlineText = stringResource(R.string.song_info),
+                    supportingText = stringResource(R.string.song_info_desc),
+                    icon = Icons.Default.MusicNote,
+                    position = SectionPosition.MIDDLE,
+                    trailingContent = {
+                        Switch(
+                            checked = isSongInfoEnabled,
+                            onCheckedChange = onSongInfoChanged,
+                            thumbContent = {
+                                Icon(
+                                    imageVector = if (isSongInfoEnabled) Icons.Default.Check else Icons.Default.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize)
                                 )

@@ -3055,21 +3055,48 @@ fun FullPlayer(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Píldora de Artista Alineada a la Izquierda
-                    Surface(
-                        color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(percent = 50),
-                        modifier = Modifier.widthIn(max = 280.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            song.artist,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).basicMarquee()
-                        )
+                        // Píldora de Artista
+                        Surface(
+                            color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(percent = 50),
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .widthIn(max = 280.dp)
+                        ) {
+                            Text(
+                                song.artist,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).basicMarquee()
+                            )
+                        }
+
+                        // Píldora de Información de Canción
+                        if (settingsManager.isSongInfoEnabled && song.format.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                color = if (useBlurControls) blurContainerColor else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(percent = 50),
+                            ) {
+                                Text(
+                                    text = if (song.bitrate != null) "${song.format} | ${song.bitrate / 1000}kbps" else song.format,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (useBlurControls) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
 

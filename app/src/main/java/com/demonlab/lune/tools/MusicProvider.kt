@@ -156,6 +156,21 @@ class MusicProvider(private val context: Context) {
                 val extension = data.substringAfterLast(".").lowercase()
                 val isHiFiFile = extension == "flac" || extension == "wav" || extension == "alac"
                 val isHiFi = settingsManager.enableHiFi && isHiFiFile
+                val format = when (extension) {
+                    "mp3" -> "MP3"
+                    "flac" -> "FLAC"
+                    "wav" -> "WAV"
+                    "aac", "m4a" -> "AAC"
+                    "ogg" -> "OGG"
+                    "opus" -> "OPUS"
+                    "wma" -> "WMA"
+                    "alac" -> "ALAC"
+                    else -> extension.uppercase()
+                }
+                val file = File(data)
+                val bitrate = if (duration > 0 && file.exists()) {
+                    ((file.length() * 8) / (duration / 1000f)).toInt()
+                } else null
 
                 val contentUri: Uri = ContentUris.withAppendedId(collection, id)
 
@@ -171,7 +186,8 @@ class MusicProvider(private val context: Context) {
                 songList.add(
                     Song(
                         id, albumId, title, artist, album, duration, contentUri, data,
-                        dateAdded, albumArtUri, genre, folderName, isHiFi, coverUrl, isFavorite, null
+                        dateAdded, albumArtUri, genre, folderName, isHiFi, coverUrl, isFavorite, null,
+                        format, bitrate
                     )
                 )
             }
