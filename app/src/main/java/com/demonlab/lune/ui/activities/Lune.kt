@@ -3280,7 +3280,7 @@ fun FullPlayer(
                             Icon(
                                 imageVector = if (sliderValue == 0f) Icons.AutoMirrored.Filled.VolumeOff else if (sliderValue < 0.5f) Icons.AutoMirrored.Filled.VolumeDown else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -3294,8 +3294,8 @@ fun FullPlayer(
                             thumb = {}, // Remove thumb
                             modifier = Modifier.weight(0.5f),
                             colors = SliderDefaults.colors(
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                activeTrackColor = if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.primary,
+                                inactiveTrackColor = if (hasBlurBackground) Color.White.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                             )
                         )
                         
@@ -3306,7 +3306,7 @@ fun FullPlayer(
                             Text(
                                 "${(sliderValue * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -3329,7 +3329,7 @@ fun FullPlayer(
                         
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (hasBlurBackground) blurContainerColor else MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.weight(1f)
                         ) {
                             Row(
@@ -3345,8 +3345,8 @@ fun FullPlayer(
                                             playbackManager.updatePlaybackSpeed(speedOption)
                                         },
                                         shape = CircleShape,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
-                                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isSelected) if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+                                        contentColor = if (isSelected) if (hasBlurBackground) Color.Black.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onPrimary else if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text(
