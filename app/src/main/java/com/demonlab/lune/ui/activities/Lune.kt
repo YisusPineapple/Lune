@@ -43,6 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.animation.graphics.res.animatedVectorResource
 import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
@@ -2858,21 +2859,23 @@ fun FullPlayer(
                 }
             }
 
-            // Full-screen cinematic background with Ken Burns
-            val cinematicRequest = remember(song.id) {
-                ImageRequest.Builder(context)
-                    .data(song.coverUrl ?: song.albumArtUri)
-                    .crossfade(true)
-                    .fallback(R.drawable.ic_artwork_fallback)
-                    .error(R.drawable.ic_artwork_fallback)
-                    .build()
+            // Full-screen cinematic background with smooth crossfade
+            Crossfade(targetState = song, animationSpec = tween(400)) { currentSong ->
+                val request = remember(currentSong.id) {
+                    ImageRequest.Builder(context)
+                        .data(currentSong.coverUrl ?: currentSong.albumArtUri)
+                        .crossfade(true)
+                        .fallback(R.drawable.ic_artwork_fallback)
+                        .error(R.drawable.ic_artwork_fallback)
+                        .build()
+                }
+                AsyncImage(
+                    model = request,
+                    contentDescription = null,
+                    modifier = cinematicTransform(Modifier.fillMaxSize()),
+                    contentScale = ContentScale.Crop
+                )
             }
-            AsyncImage(
-                model = cinematicRequest,
-                contentDescription = null,
-                modifier = cinematicTransform(Modifier.fillMaxSize()),
-                contentScale = ContentScale.Crop
-            )
 
             if (hasBlurBackground) {
                 // Blur gradient overlay (fades in from bottom/right)
@@ -2905,24 +2908,26 @@ fun FullPlayer(
                             drawRect(brush = blurGradientBrush, blendMode = BlendMode.DstIn)
                         }
                 ) {
-                    val cinematicBlurRequest = remember(song.id) {
-                        ImageRequest.Builder(context)
-                            .data(song.coverUrl ?: song.albumArtUri)
-                            .crossfade(true)
-                            .fallback(R.drawable.ic_artwork_fallback)
-                            .error(R.drawable.ic_artwork_fallback)
-                            .build()
+                    Crossfade(targetState = song, animationSpec = tween(400)) { currentSong ->
+                        val request = remember(currentSong.id) {
+                            ImageRequest.Builder(context)
+                                .data(currentSong.coverUrl ?: currentSong.albumArtUri)
+                                .crossfade(true)
+                                .fallback(R.drawable.ic_artwork_fallback)
+                                .error(R.drawable.ic_artwork_fallback)
+                                .build()
+                        }
+                        AsyncImage(
+                            model = request,
+                            contentDescription = null,
+                            modifier = cinematicTransform(
+                                Modifier
+                                    .fillMaxSize()
+                                    .blur(80.dp)
+                            ),
+                            contentScale = ContentScale.Crop
+                        )
                     }
-                    AsyncImage(
-                        model = cinematicBlurRequest,
-                        contentDescription = null,
-                        modifier = cinematicTransform(
-                            Modifier
-                                .fillMaxSize()
-                                .blur(80.dp)
-                        ),
-                        contentScale = ContentScale.Crop
-                    )
                 }
             } else {
                 // Surface gradient overlay (no blur)
