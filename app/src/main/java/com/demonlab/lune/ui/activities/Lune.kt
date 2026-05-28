@@ -1740,13 +1740,17 @@ fun SongItem(
                         modifier = Modifier.size(60.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        val rotationValue = rotation // Capturing state for safety inside lambda
                         Icon(
                             painter = painterResource(id = R.drawable.ic_logo_diamonds),
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier
                                 .size(60.dp)
-                                .then(if (isPlaying) Modifier.rotate(rotation) else Modifier)
+                                .graphicsLayer {
+                                    // Apply rotation on draw-layer only, keeping SongItem recompositions at zero
+                                    rotationZ = if (isPlaying) rotationValue else 0f
+                                }
                         )
                         Icon(
                             imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
