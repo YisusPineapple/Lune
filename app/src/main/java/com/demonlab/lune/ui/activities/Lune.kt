@@ -2825,6 +2825,7 @@ fun FullPlayer(
             val blurRequest = remember(song.id) {
                 ImageRequest.Builder(context)
                     .data(song.coverUrl ?: song.albumArtUri)
+                    .size(128, 128) // Requesting small size for blurring to save GPU bandwidth
                     .crossfade(true)
                     .fallback(R.drawable.ic_artwork_fallback)
                     .error(R.drawable.ic_artwork_fallback)
@@ -2864,6 +2865,7 @@ fun FullPlayer(
                 val request = remember(currentSong.id) {
                     ImageRequest.Builder(context)
                         .data(currentSong.coverUrl ?: currentSong.albumArtUri)
+                        .size(128, 128) // Drastically speeds up rendering for weak GPUs on low-end
                         .crossfade(true)
                         .fallback(R.drawable.ic_artwork_fallback)
                         .error(R.drawable.ic_artwork_fallback)
@@ -3003,7 +3005,7 @@ fun FullPlayer(
                     if (coverShape == 2 && coverVinylEffect) {
                         VinylRecordAsyncCover(
                             model = song.coverUrl ?: song.albumArtUri,
-                            rotation = if (coverSpin && isPlaying) spinRotation else 0f,
+                            rotationProvider = { if (coverSpin && isPlaying) spinRotation else 0f },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -3016,7 +3018,10 @@ fun FullPlayer(
                             shape = activeShape,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .rotate(if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f),
+                                .graphicsLayer {
+                                    // Direct GPU-layer rotation prevents recomposition of the child hierarchy
+                                    rotationZ = if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f
+                                },
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             tonalElevation = 8.dp
                         ) {
@@ -4253,7 +4258,7 @@ fun MiniPlayer(
                     if (coverShape == 2 && coverVinylEffect) {
                         VinylRecordAsyncCover(
                             model = song.coverUrl ?: song.albumArtUri ?: com.demonlab.lune.R.drawable.ic_launcher_foreground,
-                            rotation = if (coverSpin && isPlaying) spinRotation else 0f,
+                            rotationProvider = { if (coverSpin && isPlaying) spinRotation else 0f },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -6469,21 +6474,21 @@ fun ScrollToCurrentButton(
     }
 }
 
-fun Modifier.bounceClick(scaleDown: Float = 0.85f): Modifier = composed {
-    var isPressed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val scale by androidx.compose.animation.core.animateFloatAsState(
+fun Modifier.bounceClick(scaleDown: Float = 0.90f): Modifier = composed {
+    var isPressed by remember { mutableStateOf(false) }
+    val scaleState = animateFloatAsState(
         targetValue = if (isPressed) scaleDown else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        animationSpec = spring(
+            dampingRatio = 0.75f, // Snappy M3E standard
+            stiffness = 350f       // Fast settling to free up CPU
         ),
-        label = "bounce"
+        label = "bounceScale"
     )
-
     this
         .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
+            // Defer state read directly to drawing layer, bypassing recomposition entirely
+            scaleX = scaleState.value
+            scaleY = scaleState.value
         }
         .pointerInput(Unit) {
             awaitEachGesture {
@@ -6498,13 +6503,16 @@ fun Modifier.bounceClick(scaleDown: Float = 0.85f): Modifier = composed {
 @Composable
 fun VinylRecordAsyncCover(
     model: Any?,
-    rotation: Float,
+    rotationProvider: () -> Float, // Changed from plain Float to avoid parent recomposition on tick
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .rotate(rotation)
+            .graphicsLayer {
+                // Rotation is applied directly at the GPU level during drawing
+                rotationZ = rotationProvider()
+            }
             .clip(CircleShape)
             .background(Color(0xFF101010)),
         contentAlignment = Alignment.Center
