@@ -1408,6 +1408,11 @@ fun MainScreen(
                                             onOptionsClick = {
                                                 optionsSong = song
                                                 showOptionsSheet = true
+                                            },
+                                            onFavoriteClick = { s ->
+                                                playbackManager.toggleFavorite(s)?.let { updated ->
+                                                    musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                                                }
                                             }
                                         )
                                         
@@ -1502,7 +1507,12 @@ fun MainScreen(
                     onSortClick = { showSortSheet = true },
                     currentlyPlayingId = if (playbackManager.activePlaylistId == playListRender.id) currentSong?.id else null,
                     bottomPadding = bottomPadding,
-                    viewModel = musicViewModel
+                    viewModel = musicViewModel,
+                    onFavoriteClick = { song ->
+                        playbackManager.toggleFavorite(song)?.let { updated ->
+                            musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                        }
+                    }
                 )
             }
         }
@@ -1520,8 +1530,12 @@ fun MainScreen(
             }
             
             lastAlbum?.let { albumRender ->
+                val albumSongs = remember(albumRender.name, visibleSongs) {
+                    visibleSongs.filter { it.artist == albumRender.name }
+                }
                 AlbumDetailView(
                     album = albumRender,
+                    songs = albumSongs,
                     sortOption = activeSortOption,
                     isSortAscending = activeIsSortAscending,
                     onBack = { selectedAlbum = null },
@@ -1536,7 +1550,12 @@ fun MainScreen(
                     },
                     onSortClick = { showSortSheet = true },
                     currentlyPlayingId = if (playbackManager.activePlaylistId == albumRender.id) currentSong?.id else null,
-                    bottomPadding = bottomPadding
+                    bottomPadding = bottomPadding,
+                    onFavoriteClick = { song ->
+                        playbackManager.toggleFavorite(song)?.let { updated ->
+                            musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                        }
+                    }
                 )
             }
         }
@@ -1574,7 +1593,12 @@ fun MainScreen(
                     },
                     onSortClick = { showSortSheet = true },
                     currentlyPlayingId = if (playbackManager.activePlaylistId == folderName.hashCode().toLong()) currentSong?.id else null,
-                    bottomPadding = bottomPadding
+                    bottomPadding = bottomPadding,
+                    onFavoriteClick = { song ->
+                        playbackManager.toggleFavorite(song)?.let { updated ->
+                            musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                        }
+                    }
                 )
             }
         }
@@ -1751,6 +1775,11 @@ fun MainScreen(
                 optionsSong = song
                 showOptionsSheet = true
             },
+            onFavoriteClick = { song ->
+                playbackManager.toggleFavorite(song)?.let { updated ->
+                    musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                }
+            },
             currentlyPlayingId = currentSong?.id,
             activeCategory = playbackManager.activeCategory,
             activePlaylistId = playbackManager.activePlaylistId
@@ -1917,7 +1946,8 @@ fun SongItem(
     isLast: Boolean = false,
     modifier: Modifier = Modifier, 
     onClick: (() -> Unit)? = null, 
-    onOptionsClick: (() -> Unit)? = null
+    onOptionsClick: (() -> Unit)? = null,
+    onFavoriteClick: ((Song) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val settingsManager = remember { SettingsManager.getInstance(context) }
@@ -2030,19 +2060,32 @@ fun SongItem(
             }
         },
         trailingContent = {
-            IconButton(onClick = onOptionsClick ?: {}) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { onFavoriteClick?.invoke(song) },
                     modifier = Modifier.size(32.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = stringResource(R.string.player_options),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    Icon(
+                        imageVector = if (song.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = stringResource(R.string.option_favorite),
+                        tint = if (song.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(onClick = onOptionsClick ?: {}) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.MoreVert,
+                                contentDescription = stringResource(R.string.player_options),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -3492,10 +3535,8 @@ fun FullPlayer(
 
                 Surface(
                     onClick = { 
-                        playbackManager.toggleFavorite {
-                            playbackManager.currentSong?.let { song ->
-                                onSyncFavorite?.invoke(song.id, song.isFavorite)
-                            }
+                        playbackManager.toggleFavorite { updatedSong ->
+                            onSyncFavorite?.invoke(updatedSong.id, updatedSong.isFavorite)
                         }
                     },
                     shape = CircleShape,
@@ -4282,6 +4323,11 @@ fun QueueBottomSheet(
                             onOptionsClick = {
                                 optionsSong = currentSong
                                 showOptionsSheet = true
+                            },
+                            onFavoriteClick = { song ->
+                                playbackManager.toggleFavorite(song)?.let { updated ->
+                                    musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                                }
                             }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -4319,6 +4365,11 @@ fun QueueBottomSheet(
                         onOptionsClick = {
                             optionsSong = song
                             showOptionsSheet = true
+                        },
+                        onFavoriteClick = { s ->
+                            playbackManager.toggleFavorite(s)?.let { updated ->
+                                musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                            }
                         }
                     )
                 }
@@ -5636,7 +5687,8 @@ fun PlaylistDetailView(
     onSortClick: () -> Unit,
     currentlyPlayingId: Long?,
     bottomPadding: Dp,
-    viewModel: com.demonlab.lune.ui.viewmodels.MusicViewModel
+    viewModel: com.demonlab.lune.ui.viewmodels.MusicViewModel,
+    onFavoriteClick: ((Song) -> Unit)? = null
 ) {
     val playbackManager = PlaybackManager.getInstance(LocalContext.current)
     val settingsManager = SettingsManager.getInstance(LocalContext.current)
@@ -5923,7 +5975,8 @@ fun PlaylistDetailView(
                             currentlyPlaying = song.id == currentlyPlayingId, 
                             isPlaying = isPlaying,
                             onClick = { onSongClick(song, sortedSongs) },
-                            onOptionsClick = { onOptionsClick(song) }
+                            onOptionsClick = { onOptionsClick(song) },
+                            onFavoriteClick = onFavoriteClick
                         )
                     }
                 }
@@ -5997,6 +6050,7 @@ fun PlaylistDetailView(
 @Composable
 fun AlbumDetailView(
     album: Album,
+    songs: List<Song>,
     sortOption: String,
     isSortAscending: Boolean,
     onBack: () -> Unit,
@@ -6004,7 +6058,8 @@ fun AlbumDetailView(
     onOptionsClick: (Song) -> Unit,
     onSortClick: () -> Unit,
     currentlyPlayingId: Long?,
-    bottomPadding: Dp
+    bottomPadding: Dp,
+    onFavoriteClick: ((Song) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val playbackManager = PlaybackManager.getInstance(context)
@@ -6012,8 +6067,9 @@ fun AlbumDetailView(
     val vibrator = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
     val listState = rememberLazyListState()
     val isPlaying = playbackManager.isPlaying
-    val sortedSongs = remember(album.songs, sortOption, isSortAscending) {
-        playbackManager.getSortedList(album.songs, sortOption, isSortAscending)
+
+    val sortedSongs = remember(songs, sortOption, isSortAscending) {
+        playbackManager.getSortedList(songs, sortOption, isSortAscending)
     }
     
     // Calculate header visibility based on scroll
@@ -6273,7 +6329,8 @@ fun AlbumDetailView(
                             currentlyPlaying = song.id == currentlyPlayingId, 
                             isPlaying = isPlaying,
                             onClick = { onSongClick(song, sortedSongs) },
-                            onOptionsClick = { onOptionsClick(song) }
+                            onOptionsClick = { onOptionsClick(song) },
+                            onFavoriteClick = onFavoriteClick
                         )
                     }
                 }
@@ -6382,14 +6439,15 @@ fun SearchScreen(
     viewModel: com.demonlab.lune.ui.viewmodels.MusicViewModel,
     allFolders: List<String>,
     onDismiss: () -> Unit,
-    onSongClick: (Song, List<Song>, String, Long) -> Unit, // song, queue, category/folder, parentId
+    onSongClick: (Song, List<Song>, String, Long) -> Unit,
     onNavigateToAlbum: (Album) -> Unit,
     onNavigateToPlaylist: (com.demonlab.lune.data.Playlist) -> Unit,
     onNavigateToFolder: (String) -> Unit,
     onOptionsClick: (Song) -> Unit,
     currentlyPlayingId: Long?,
     activeCategory: String?,
-    activePlaylistId: Long?
+    activePlaylistId: Long?,
+    onFavoriteClick: ((Song) -> Unit)? = null
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -6578,7 +6636,8 @@ fun SearchScreen(
                         currentlyPlaying = isCurrent,
                         isPlaying = isPlaying && isCurrent,
                         onClick = { onSongClick(song, allSongs, "ALL", -100L) },
-                        onOptionsClick = { onOptionsClick(song) }
+                        onOptionsClick = { onOptionsClick(song) },
+                        onFavoriteClick = onFavoriteClick
                     )
                 }
             }
@@ -6609,7 +6668,8 @@ fun SearchScreen(
                             currentlyPlaying = isCurrent,
                             isPlaying = isPlaying && isCurrent,
                             onClick = { onSongClick(song, searchResults.favoriteSongs, "FAVORITES", -200L) },
-                            onOptionsClick = { onOptionsClick(song) }
+                            onOptionsClick = { onOptionsClick(song) },
+                            onFavoriteClick = onFavoriteClick
                         )
                     }
                 } else {
@@ -6667,7 +6727,8 @@ fun SearchScreen(
                                     onSongClick(song, fullPlaylistSongs, "PLAYLISTS", playlist.id) 
                                     onNavigateToPlaylist(playlist)
                                 },
-                                onOptionsClick = { onOptionsClick(song) }
+                                onOptionsClick = { onOptionsClick(song) },
+                                onFavoriteClick = onFavoriteClick
                             )
                         }
                     }
@@ -6721,7 +6782,8 @@ fun SearchScreen(
                                     onSongClick(song, album.songs, "ALBUMS", album.id)
                                     onNavigateToAlbum(album)
                                 },
-                                onOptionsClick = { onOptionsClick(song) }
+                                onOptionsClick = { onOptionsClick(song) },
+                                onFavoriteClick = onFavoriteClick
                             )
                         }
                     }
@@ -6757,7 +6819,8 @@ fun SearchScreen(
                                 onSongClick(song, songs, "FOLDERS", tagName.hashCode().toLong())
                                 onNavigateToFolder(tagName)
                             },
-                            onOptionsClick = { onOptionsClick(song) }
+                            onOptionsClick = { onOptionsClick(song) },
+                            onFavoriteClick = onFavoriteClick
                         )
                     }
                 } else {
@@ -7014,7 +7077,8 @@ fun FolderDetailView(
     onOptionsClick: (Song) -> Unit,
     onSortClick: () -> Unit,
     currentlyPlayingId: Long?,
-    bottomPadding: Dp
+    bottomPadding: Dp,
+    onFavoriteClick: ((Song) -> Unit)? = null
 ) {
     val playbackManager = PlaybackManager.getInstance(LocalContext.current)
     val settingsManager = SettingsManager.getInstance(LocalContext.current)
@@ -7333,11 +7397,12 @@ fun FolderDetailView(
                         SongItem(
                             isFirst = isFirst,
                             isLast = isLast,
-                            song = song,
-                            currentlyPlaying = song.id == currentlyPlayingId,
+                            song = song, 
+                            currentlyPlaying = song.id == currentlyPlayingId, 
                             isPlaying = isPlaying,
                             onClick = { onSongClick(song, sortedSongs) },
-                            onOptionsClick = { onOptionsClick(song) }
+                            onOptionsClick = { onOptionsClick(song) },
+                            onFavoriteClick = onFavoriteClick
                         )
                     }
                 }

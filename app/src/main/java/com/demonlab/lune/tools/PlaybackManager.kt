@@ -829,17 +829,31 @@ class PlaybackManager private constructor(private val context: Context) {
         return 0f
     }
 
-    fun toggleFavorite(onFavoriteToggled: (() -> Unit)? = null) {
-        val song = currentSong ?: return
-        val newFavoriteStatus = !song.isFavorite
-        currentSong = song.copy(isFavorite = newFavoriteStatus)
+    fun toggleFavorite(song: Song? = null, onFavoriteToggled: ((Song) -> Unit)? = null): Song? {
+        val targetSong = song ?: currentSong ?: return null
+        val newFavoriteStatus = !targetSong.isFavorite
+        val updatedSong = targetSong.copy(isFavorite = newFavoriteStatus)
+        
+        if (song == null || currentSong?.id == targetSong.id) {
+            currentSong = updatedSong
+        }
+        
+        // Update the song in the active playlist too
+        val newList = activePlaylist.map { 
+            if (it.id == targetSong.id) updatedSong else it 
+        }
+        if (newList != activePlaylist) {
+            activePlaylist = newList
+        }
         
         // Persist to DB
         val metadataManager = MetadataManager(context)
         kotlinx.coroutines.MainScope().launch {
-            metadataManager.updateFavoriteStatus(song.id, newFavoriteStatus)
-            onFavoriteToggled?.invoke()
+            metadataManager.updateFavoriteStatus(targetSong.id, newFavoriteStatus)
+            onFavoriteToggled?.invoke(updatedSong)
         }
+        
+        return updatedSong
     }
 
     fun updatePlayingState(playing: Boolean) {
