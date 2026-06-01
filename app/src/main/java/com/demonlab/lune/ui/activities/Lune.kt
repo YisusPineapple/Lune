@@ -96,12 +96,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.rotate
@@ -163,6 +159,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import com.demonlab.lune.tools.MetadataManager
 import com.demonlab.lune.ui.theme.LuneTheme
+import com.demonlab.lune.ui.utils.*
 import com.demonlab.lune.ui.screens.OnboardingScreen
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -462,15 +459,6 @@ class Lune : AppCompatActivity() {
 
             }
         }
-    }
-}
-
-fun android.os.Vibrator.triggerLightVibration() {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        this.vibrate(android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK))
-    } else {
-        @Suppress("DEPRECATION")
-        this.vibrate(20)
     }
 }
 
@@ -1088,6 +1076,15 @@ fun MainScreen(
                         if (f != null && f != selectedFolder) {
                             onSelectedFolderChange(f)
                         }
+                    }
+                }
+
+                LaunchedEffect(folders) {
+                    val target = folders.indexOf(selectedFolder)
+                    if (target != -1 && target != pagerState.currentPage) {
+                        isPagerProgrammaticScroll = true
+                        pagerState.animateScrollToPage(target)
+                        isPagerProgrammaticScroll = false
                     }
                 }
 
@@ -2460,12 +2457,6 @@ fun AlbumStackedCarousel(
     }
 }
 
-fun formatDuration(duration: Long): String {
-    val minutes = (duration / 1000) / 60
-    val seconds = (duration / 1000) % 60
-    return "%d:%02d".format(java.util.Locale.getDefault(), minutes, seconds)
-}
-
 @Composable
 fun SongsListHeader(
     songs: List<Song>,
@@ -2621,17 +2612,6 @@ fun SongsListHeader(
     }
 }
 
-fun formatDurationCompact(durationInMillis: Long): String {
-    val totalSeconds = durationInMillis / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    return if (hours > 0) {
-        if (minutes > 0) "${hours}h ${minutes}m" else "${hours}h"
-    } else {
-        "${minutes}m"
-    }
-}
-
 @Composable
 fun FolderFilterContent(
     allFolders: List<String>,
@@ -2702,18 +2682,6 @@ fun FolderFilterContent(
                 )
             }
         }
-    }
-}
-
-fun formatLongDuration(durationInMillis: Long): String {
-    val totalSeconds = durationInMillis / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(java.util.Locale.getDefault(), hours, minutes, seconds)
-    } else {
-        "%02d:%02d".format(java.util.Locale.getDefault(), minutes, seconds)
     }
 }
 
@@ -7040,32 +7008,6 @@ fun ScrollToCurrentButton(
     }
 }
 
-fun Modifier.bounceClick(scaleDown: Float = 0.85f): Modifier = composed {
-    var isPressed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isPressed) scaleDown else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
-        ),
-        label = "bounce"
-    )
-
-    this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-        .pointerInput(Unit) {
-            awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = false)
-                isPressed = true
-                waitForUpOrCancellation()
-                isPressed = false
-            }
-    }
-}
-
 @Composable
 fun FolderDetailView(
     folderName: String,
@@ -7525,35 +7467,4 @@ fun ReusableSkipIcon(
     }
 }
 
-fun Modifier.songSwipeGestures(
-    enabled: Boolean,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit
-): Modifier = this.then(
-    if (enabled) {
-        Modifier.pointerInput(Unit) {
-            var totalDragX = 0f
-            var gestureConsumed = false
-            detectDragGestures(
-                onDragStart = {
-                    totalDragX = 0f
-                    gestureConsumed = false
-                },
-                onDrag = { _, dragAmount ->
-                    if (!gestureConsumed) {
-                        totalDragX += dragAmount.x
-                        val absX = kotlin.math.abs(totalDragX)
-                        val absY = kotlin.math.abs(dragAmount.y)
-                        // Horizontal swipe only (covers next/previous)
-                        if (absX > 60 && absX > absY * 1.5f) {
-                            if (totalDragX < 0) onNext() else onPrevious()
-                            gestureConsumed = true
-                        }
-                    }
-                }
-            )
-        }
-    } else {
-        Modifier
-    }
-)
+

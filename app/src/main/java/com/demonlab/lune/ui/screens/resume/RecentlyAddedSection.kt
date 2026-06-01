@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.demonlab.lune.R
 import com.demonlab.lune.tools.Song
+import com.demonlab.lune.ui.utils.formatDuration
 
 @Composable
 fun RecentlyAddedSection(
@@ -94,9 +95,4 @@ private fun RecentlyAddedRow(
     }
 }
 
-private fun formatDuration(durationMs: Long): String {
-    val totalSec = durationMs / 1000
-    val min = totalSec / 60
-    val sec = totalSec % 60
-    return "%d:%02d".format(min, sec)
-}
+
