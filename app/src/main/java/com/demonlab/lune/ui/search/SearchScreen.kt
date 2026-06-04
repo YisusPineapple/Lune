@@ -1,6 +1,7 @@
 package com.demonlab.lune.ui.search
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,7 @@ import coil.compose.AsyncImage
 import com.demonlab.lune.R
 import com.demonlab.lune.data.Playlist
 import com.demonlab.lune.tools.PlaybackManager
+import com.demonlab.lune.tools.SettingsManager
 import com.demonlab.lune.tools.Song
 import com.demonlab.lune.ui.components.SongItem
 import com.demonlab.lune.ui.data.Album
@@ -48,6 +50,7 @@ fun SearchScreen(
     allFolders: List<String>,
     onDismiss: () -> Unit,
     onSongClick: (Song, List<Song>, String, Long) -> Unit,
+    onPlayAll: (List<Song>, Boolean) -> Unit,
     onNavigateToAlbum: (Album) -> Unit,
     onNavigateToPlaylist: (Playlist) -> Unit,
     onNavigateToFolder: (String) -> Unit,
@@ -59,7 +62,17 @@ fun SearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
-    val isPlaying = PlaybackManager.getInstance(LocalContext.current).isPlaying
+    val context = LocalContext.current
+    val pm = PlaybackManager.getInstance(context)
+    val settings = remember { SettingsManager.getInstance(context) }
+    val isSearchActive = activePlaylistId == -300L
+    var searchShuffle by remember { mutableStateOf(settings.getPlaylistShuffle(-300L)) }
+
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) searchShuffle = pm.isShuffle
+    }
+
+    val isPlaying = pm.isPlaying
     
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -224,6 +237,57 @@ fun SearchScreen(
                             .fillMaxWidth()
                     )
                 }
+                if (searchResults.songs.size > 1) {
+                    item {
+                        val pm = PlaybackManager.getInstance(LocalContext.current)
+                        val btnHeight = 52.dp
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilledTonalButton(
+                                onClick = { onPlayAll(searchResults.songs, searchShuffle) },
+                                modifier = Modifier.weight(1f).height(btnHeight),
+                                contentPadding = PaddingValues(horizontal = 24.dp)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.search_play_all))
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    if (isSearchActive) {
+                                        pm.toggleShuffle()
+                                        searchShuffle = pm.isShuffle
+                                    } else {
+                                        val newState = !searchShuffle
+                                        searchShuffle = newState
+                                        settings.setPlaylistShuffle(-300L, newState)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(btnHeight),
+                                colors = if (searchShuffle)
+                                    ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                else
+                                    ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                contentPadding = PaddingValues(horizontal = 24.dp)
+                            ) {
+                                Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.search_shuffle))
+                            }
+                        }
+                    }
+                }
                 itemsIndexed(searchResults.songs) { index, song ->
                     val isFirst = index == 0
                     val isLast = index == searchResults.songs.lastIndex
@@ -234,7 +298,7 @@ fun SearchScreen(
                         song = song,
                         currentlyPlaying = isCurrent,
                         isPlaying = isPlaying && isCurrent,
-                        onClick = { onSongClick(song, allSongs, "ALL", -100L) },
+                        onClick = { onSongClick(song, allSongs, "ALL", -300L) },
                         onOptionsClick = { onOptionsClick(song) },
                         onFavoriteClick = onFavoriteClick
                     )

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Image
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -70,8 +72,10 @@ fun OnboardingScreen(
             3 -> NotificationPermissionStep(onNext = { currentStep = 4 })
             4 -> MusicPermissionStep(onNext = { currentStep = 5 })
             5 -> ManageFilesPermissionStep(onNext = { currentStep = 6 })
-            6 -> PermissionsReminderStep(onNext = { currentStep = 7 })
-            7 -> FeaturesStep(onFinish = onStartClick)
+            6 -> FolderVisibilityStep(onNext = { currentStep = 7 })
+            7 -> PermissionsReminderStep(onNext = { currentStep = 8 })
+            8 -> SupportStep(onNext = { currentStep = 9 })
+            9 -> FeaturesStep(onFinish = onStartClick)
         }
     }
 }
@@ -827,6 +831,126 @@ fun ManageFilesPermissionStep(onNext: () -> Unit) {
 }
 
 @Composable
+fun FolderVisibilityStep(onNext: () -> Unit) {
+    val context = LocalContext.current
+    val settingsManager = SettingsManager.getInstance(context)
+    val isDark = isSystemInDarkTheme()
+    val diamondsColor = if (isDark) Color.White else Color.Black
+    val iconColor = if (isDark) Color.Black else Color.White
+
+    var showAll by remember {
+        mutableStateOf(settingsManager.showAllFoldersOnStart)
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "InfiniteLogoRotationVisibility")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "LogoRotation"
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(200.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_logo_diamonds),
+                    contentDescription = null,
+                    tint = diamondsColor,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(rotationZ = rotation)
+                )
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.onboarding_folder_visibility_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.onboarding_folder_visibility_desc),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Surface(
+                onClick = { showAll = !showAll },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.onboarding_folder_visibility_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = showAll,
+                        onCheckedChange = { showAll = it }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Button(
+                onClick = {
+                    settingsManager.showAllFoldersOnStart = showAll
+                    onNext()
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    stringResource(R.string.onboarding_next_button),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun FeaturesStep(onFinish: () -> Unit) {
     val isDark = isSystemInDarkTheme()
     val diamondsColor = if (isDark) Color.White else Color.Black
@@ -1161,6 +1285,90 @@ fun PermissionsReminderStep(onNext: () -> Unit) {
             ) {
                 Text(
                     stringResource(R.string.onboarding_reminder_button),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SupportStep(onNext: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val diamondsColor = if (isDark) Color.White else Color.Black
+    val iconColor = if (isDark) Color.Black else Color.White
+
+    val infiniteTransition = rememberInfiniteTransition(label = "InfiniteLogoRotationSupport")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "LogoRotation"
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(200.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_logo_diamonds),
+                    contentDescription = null,
+                    tint = diamondsColor,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(rotationZ = rotation)
+                )
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.onboarding_support_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.onboarding_support_desc),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Button(
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    stringResource(R.string.onboarding_next_button),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )

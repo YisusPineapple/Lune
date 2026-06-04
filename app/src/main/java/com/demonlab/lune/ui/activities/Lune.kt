@@ -911,7 +911,7 @@ fun MainScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 folders.forEach { folder ->
-                                    val isCurrentContext = playbackManager.activeCategory == folder && playbackManager.currentSong != null
+                                    val isCurrentContext = playbackManager.activeCategory == folder && playbackManager.currentSong != null && playbackManager.activePlaylistId != -300L
                                     val isSelected = selectedFolder == folder
                                     val label = when(folder) {
                                         "RESUME" -> sTabResume
@@ -1114,9 +1114,9 @@ fun MainScreen(
                                 bottomPadding = bottomPadding,
                                 currentSong = currentSong,
                                 isPlaying = isPlaying,
-                                onSongClick = { song, listContext ->
+                                    onSongClick = { song, listContext ->
                                     onCurrentSongChange(song)
-                                    playbackManager.play(song, listContext, -100L, category = "ALL")
+                                    playbackManager.play(song, listContext, -100L, category = "ALL", shuffleMode = playbackManager.isShuffle)
                                     onIsPlayingChange(true)
                                     onIsPlayerExpandedChange(true)
                                 },
@@ -1192,7 +1192,7 @@ fun MainScreen(
                                         playbackManager.checkPlaylistStatus()
                                         if (isActive) {
                                             if (musicViewModel.allSongs.isNotEmpty()) {
-                                                playbackManager.play(currentSong ?: musicViewModel.allSongs[0], musicViewModel.allSongs, -100L, category = "ALL")
+                                                playbackManager.play(currentSong ?: musicViewModel.allSongs[0], musicViewModel.allSongs, -100L, category = "ALL", shuffleMode = playbackManager.isShuffle)
                                             }
                                         }
                                     }
@@ -1309,7 +1309,7 @@ fun MainScreen(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 val isCurrentListPlaying = playbackManager.activePlaylistId == pageContextId && playbackManager.activeCategory == folder
                                 var localShuffleState by remember(pageContextId) { mutableStateOf(settingsManager.getPlaylistShuffle(pageContextId)) }
-                                val isShuffleActive = if (isCurrentListPlaying) playbackManager.isShuffle else localShuffleState
+                                val isShuffleActive = if (folder == "ALL" || isCurrentListPlaying) playbackManager.isShuffle else localShuffleState
                                 val showSimplifiedHeader = folder == "ALL" || folder == "FAVORITES" || (!listOf("RESUME", "ALBUMS", "PLAYLISTS").contains(folder))
 
                                 LazyColumn(
@@ -1345,12 +1345,12 @@ fun MainScreen(
                                                         } else if (pageSortedSongs.isNotEmpty()) {
                                                             val songToPlay = if (isShuffleActive) pageSortedSongs.random() else pageSortedSongs[0]
                                                             onCurrentSongChange(songToPlay)
-                                                            playbackManager.play(songToPlay, pageSortedSongs, pageContextId, category = folder)
+                                                            playbackManager.play(songToPlay, pageSortedSongs, pageContextId, category = folder, shuffleMode = isShuffleActive)
                                                             onIsPlayingChange(true)
                                                         }
                                                     },
                                                     onShuffleClick = {
-                                                        if (isCurrentListPlaying) {
+                                                        if (isCurrentListPlaying || folder == "ALL") {
                                                             playbackManager.toggleShuffle()
                                                             localShuffleState = playbackManager.isShuffle
                                                         } else {
@@ -1374,7 +1374,7 @@ fun MainScreen(
                                             onClick = {
                                                 if (playbackManager.currentSong?.id != song.id || playbackManager.activePlaylistId != pageContextId) {
                                                     onCurrentSongChange(song)
-                                                    playbackManager.play(song, pageSortedSongs, pageContextId, category = folder)
+                                                    playbackManager.play(song, pageSortedSongs, pageContextId, category = folder, shuffleMode = isShuffleActive)
                                                     onIsPlayingChange(true)
                                                 }
                                                 onIsPlayerExpandedChange(true)
@@ -1724,10 +1724,18 @@ fun MainScreen(
             allFolders = visibleFolders,
             onDismiss = { showSearchScreen = false },
             onSongClick = { song, queue, category, parentId ->
-                playbackManager.play(song, queue, playlistId = parentId, category = category)
+                val useAllContext = parentId == -300L
+                playbackManager.play(song, queue, playlistId = if (useAllContext) -100L else parentId, category = if (useAllContext) "ALL" else category)
                 onCurrentSongChange(song)
                 onIsPlayingChange(true)
-                onSelectedFolderChange(category)
+                onSelectedFolderChange(if (useAllContext) "ALL" else category)
+                showSearchScreen = false
+            },
+            onPlayAll = { matchedSongs, shuffleOn ->
+                playbackManager.play(matchedSongs.first(), matchedSongs, playlistId = -300L, category = "ALL", shuffleMode = shuffleOn)
+                onCurrentSongChange(matchedSongs.first())
+                onIsPlayingChange(true)
+                onSelectedFolderChange("RESUME")
                 showSearchScreen = false
             },
             onNavigateToAlbum = { album ->

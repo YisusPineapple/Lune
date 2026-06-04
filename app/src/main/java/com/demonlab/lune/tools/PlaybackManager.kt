@@ -40,7 +40,10 @@ class PlaybackManager private constructor(private val context: Context) {
         private set
     var activePlaylistId by mutableStateOf<Long?>(null)
         private set
+    var queueSections: List<QueuedSection> = emptyList()
     var activeCategory by mutableStateOf<String?>(settings.activeCategory)
+        private set
+    var activePlaylistName by mutableStateOf<String?>(null)
         private set
     private var shuffledIndices: List<Int> = emptyList()
     private var currentShufflePosition: Int = -1
@@ -224,13 +227,15 @@ class PlaybackManager private constructor(private val context: Context) {
         }
     }
 
-    fun play(song: Song, playlist: List<Song> = emptyList(), playlistId: Long? = null, playlistName: String? = null, category: String? = null, fromQueue: Boolean = false) {
+    fun play(song: Song, playlist: List<Song> = emptyList(), playlistId: Long? = null, playlistName: String? = null, category: String? = null, fromQueue: Boolean = false, shuffleMode: Boolean? = null, sections: List<QueuedSection> = emptyList()) {
         flushPendingStats()
         currentSong = song
         isPlaying = true
         if (playlist.isNotEmpty() && (playlist != activePlaylist || activePlaylist.isEmpty() || playlistId != activePlaylistId)) {
+            queueSections = sections
             activePlaylist = playlist
             activePlaylistId = playlistId
+            activePlaylistName = playlistName
             resetQueueCounts()
             
             if (category != null) {
@@ -240,12 +245,22 @@ class PlaybackManager private constructor(private val context: Context) {
 
             // Sync shuffle state for this playlist/context
             if (playlistId != null) {
-                isShuffle = settings.getPlaylistShuffle(playlistId)
+                isShuffle = shuffleMode ?: settings.getPlaylistShuffle(playlistId)
+                if (shuffleMode != null && settings.getPlaylistShuffle(playlistId) != shuffleMode) {
+                    settings.setPlaylistShuffle(playlistId, shuffleMode)
+                }
             } else {
-                isShuffle = settings.isShuffle
+                isShuffle = shuffleMode ?: settings.isShuffle
+                if (shuffleMode != null) settings.isShuffle = shuffleMode
             }
             
-            if (isShuffle) updateShuffledQueue()
+            if (isShuffle) {
+                if (shuffleMode != null) {
+                    updateShuffledQueue(keepCurrentFirst = false)
+                } else {
+                    updateShuffledQueue()
+                }
+            }
         } else if (!fromQueue && playlist.isNotEmpty() && isShuffle) {
             // Clicked from a playlist that is already active
             updateShuffledQueue()
@@ -373,21 +388,43 @@ class PlaybackManager private constructor(private val context: Context) {
 
     private fun updateShuffledQueue(keepCurrentFirst: Boolean = true) {
         if (activePlaylist.isEmpty()) return
-        
-        val allIndices = activePlaylist.indices.toMutableList()
-        val currentIdx = activePlaylist.indexOfFirst { it.id == currentSong?.id }
-        
-        if (keepCurrentFirst && currentIdx != -1) {
-            allIndices.remove(currentIdx)
-            allIndices.shuffle()
-            allIndices.add(0, currentIdx)
+
+        if (queueSections.isNotEmpty()) {
+            val allIndices = mutableListOf<Int>()
+            val currentIdx = activePlaylist.indexOfFirst { it.id == currentSong?.id }
+
+            for (section in queueSections) {
+                val sectionEnd = minOf(section.startIndex + section.count, activePlaylist.size)
+                if (section.startIndex >= activePlaylist.size) continue
+                val indices = (section.startIndex until sectionEnd).toMutableList()
+                indices.shuffle()
+                allIndices.addAll(indices)
+            }
+
+            if (keepCurrentFirst && currentIdx != -1) {
+                val pos = allIndices.indexOf(currentIdx)
+                if (pos > 0) {
+                    allIndices.removeAt(pos)
+                    allIndices.add(0, currentIdx)
+                }
+            }
             currentShufflePosition = 0
+            shuffledIndices = allIndices
         } else {
-            allIndices.shuffle()
+            val allIndices = activePlaylist.indices.toMutableList()
+            val currentIdx = activePlaylist.indexOfFirst { it.id == currentSong?.id }
+
+            if (keepCurrentFirst && currentIdx != -1) {
+                allIndices.remove(currentIdx)
+                allIndices.shuffle()
+                allIndices.add(0, currentIdx)
+            } else {
+                allIndices.shuffle()
+            }
+
             currentShufflePosition = 0
+            shuffledIndices = allIndices
         }
-        
-        shuffledIndices = allIndices
     }
 
 
@@ -680,14 +717,13 @@ class PlaybackManager private constructor(private val context: Context) {
     fun toggleShuffle() {
         isShuffle = !isShuffle
         resetQueueCounts()
-        
+
         val pId = activePlaylistId
         if (pId != null) {
             settings.setPlaylistShuffle(pId, isShuffle)
-        } else {
-            settings.isShuffle = isShuffle
         }
-        
+        settings.isShuffle = isShuffle
+
         if (isShuffle) updateShuffledQueue()
     }
 
@@ -944,4 +980,110 @@ class PlaybackManager private constructor(private val context: Context) {
         val volume = (percent * maxVolume).toInt()
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0)
     }
+
+    fun removeFromQueue(songId: Long) {
+        val idx = activePlaylist.indexOfFirst { it.id == songId }
+        if (idx == -1) return
+
+        val mutable = activePlaylist.toMutableList()
+        mutable.removeAt(idx)
+        activePlaylist = mutable
+
+        if (queueSections.isNotEmpty()) {
+            queueSections = queueSections.map { section ->
+                val sectionEnd = section.startIndex + section.count
+                var newStart = section.startIndex
+                var newCount = section.count
+                if (idx < section.startIndex) newStart--
+                if (idx in section.startIndex until sectionEnd) newCount--
+                QueuedSection(section.title, newStart, newCount)
+            }
+        }
+
+        if (isShuffle && shuffledIndices.isNotEmpty()) {
+            val shufMutable = shuffledIndices.toMutableList()
+            shufMutable.remove(idx)
+            for (i in shufMutable.indices) {
+                if (shufMutable[i] > idx) shufMutable[i]--
+            }
+            shuffledIndices = shufMutable
+        }
+    }
+
+    fun moveToNextInQueue(songId: Long) {
+        val song = activePlaylist.find { it.id == songId } ?: return
+        val current = currentSong ?: return
+        if (song.id == current.id) return
+
+        val mutable = activePlaylist.toMutableList()
+        val oldIdx = mutable.indexOfFirst { it.id == songId }
+
+        val songSection = if (queueSections.isNotEmpty()) {
+            queueSections.firstOrNull { oldIdx in it.startIndex until (it.startIndex + it.count) }
+        } else null
+
+        mutable.removeAt(oldIdx)
+        val currentIdx = mutable.indexOfFirst { it.id == current.id }
+
+        var insertPos = currentIdx + 1
+        if (songSection != null) {
+            insertPos = insertPos.coerceIn(songSection.startIndex, songSection.startIndex + songSection.count - 1)
+        }
+
+        insertPos = insertPos.coerceIn(0, mutable.size)
+        mutable.add(insertPos, song)
+        activePlaylist = mutable
+        val newIdx = insertPos
+
+        // Update queueSections to reflect the new activePlaylist layout
+        if (queueSections.isNotEmpty()) {
+            val songSectionIdx = queueSections.indexOfFirst { oldIdx in it.startIndex until (it.startIndex + it.count) }
+            queueSections = queueSections.mapIndexed { idx, section ->
+                val sectionEnd = section.startIndex + section.count
+                var newStart = section.startIndex
+                var newCount = section.count
+
+                if (oldIdx < section.startIndex) newStart--
+                if (oldIdx in section.startIndex until sectionEnd) newCount--
+
+                if (idx == songSectionIdx) {
+                    newCount++
+                    if (insertPos < newStart) newStart++
+                } else {
+                    if (insertPos <= newStart) newStart++
+                }
+
+                QueuedSection(section.title, newStart, newCount)
+            }
+        }
+
+        if (isShuffle && shuffledIndices.isNotEmpty()) {
+            val shufMutable = shuffledIndices.toMutableList()
+            shufMutable.remove(oldIdx)
+            for (i in shufMutable.indices) {
+                val v = shufMutable[i]
+                if (oldIdx < newIdx && v in (oldIdx + 1)..newIdx) {
+                    shufMutable[i] = v - 1
+                } else if (oldIdx > newIdx && v in newIdx until oldIdx) {
+                    shufMutable[i] = v + 1
+                }
+            }
+            val currentSongIdx = activePlaylist.indexOfFirst { it.id == current.id }
+            val currentPosInShuffle = shufMutable.indexOf(currentSongIdx)
+            var insertPosShuffle = (currentPosInShuffle + 1).coerceAtMost(shufMutable.size)
+
+            if (songSection != null) {
+                insertPosShuffle = insertPosShuffle.coerceIn(
+                    songSection.startIndex,
+                    songSection.startIndex + songSection.count
+                )
+            }
+
+            insertPosShuffle = insertPosShuffle.coerceAtMost(shufMutable.size)
+            shufMutable.add(insertPosShuffle, newIdx)
+            shuffledIndices = shufMutable
+        }
+    }
 }
+
+data class QueuedSection(val title: String, val startIndex: Int, val count: Int)
