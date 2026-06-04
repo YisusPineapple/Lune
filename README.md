@@ -65,19 +65,25 @@ height="40">](https://f-droid.org/es/packages/com.demonlab.lune/)
 ## 📱 ScreenShot
 
 <p align="center">
-  <img src="readme-res/1.jpg" width="140">
-  <img src="readme-res/2.jpg" width="140">
-  <img src="readme-res/3.jpg" width="140">
-  <img src="readme-res/4.jpg" width="140">
-  <img src="readme-res/5.jpg" width="140">
+  <img src="readme-res/1.png" width="140">
+  <img src="readme-res/2.png" width="140">
+  <img src="readme-res/3.png" width="140">
+  <img src="readme-res/4.png" width="140">
+  <img src="readme-res/5.png" width="140">
 </p>
 
 <p align="center">
-  <img src="readme-res/6.jpg" width="140">
-  <img src="readme-res/7.jpg" width="140">
-  <img src="readme-res/8.jpg" width="140">
-  <img src="readme-res/9.jpg" width="140">
-  <img src="readme-res/10.jpg" width="140">
+  <img src="readme-res/6.png" width="140">
+  <img src="readme-res/7.png" width="140">
+  <img src="readme-res/8.png" width="140">
+  <img src="readme-res/9.png" width="140">
+  <img src="readme-res/10.png" width="140">
+</p>
+
+<p align="center">
+  <img src="readme-res/11.png" width="140">
+  <img src="readme-res/12.png" width="140">
+  <img src="readme-res/13.png" width="140">
 </p>
 
 ## 🛠 Build Requirements
