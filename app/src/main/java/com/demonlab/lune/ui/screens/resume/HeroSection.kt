@@ -183,6 +183,24 @@ fun HeroSection(
         }
 
         if (currentSong != null) {
+            val pm = com.demonlab.lune.tools.PlaybackManager.getInstance(context)
+            val cat = pm.activeCategory ?: ""
+            val pId = pm.activePlaylistId
+            val pName = pm.activePlaylistName
+            val sourceLabel = remember(cat, pId, pName) {
+                if (pId == -300L) {
+                    context.getString(R.string.playing_from_search)
+                } else if (cat == "ALL") {
+                    context.getString(R.string.tab_all)
+                } else if (cat == "FAVORITES") {
+                    context.getString(R.string.tab_favorites)
+                } else if (pName != null) {
+                    "$cat: $pName"
+                } else {
+                    cat
+                }
+            }
+            PlayingFromCard(sourceLabel = sourceLabel)
             ContinueListeningCard(
                 song = currentSong,
                 isPlaying = isPlaying,
@@ -366,6 +384,40 @@ private fun ContinueListeningCard(
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PlayingFromCard(
+    sourceLabel: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.playing_from, sourceLabel),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

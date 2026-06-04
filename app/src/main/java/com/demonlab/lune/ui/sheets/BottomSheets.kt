@@ -58,6 +58,11 @@ import com.demonlab.lune.tools.Song
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private sealed interface QueueItem {
+    data class Header(val title: String) : QueueItem
+    data class Song(val song: com.demonlab.lune.tools.Song, val indexInSection: Int, val isFirstInSection: Boolean, val isLastInSection: Boolean) : QueueItem
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongOptionsBottomSheet(
@@ -619,6 +624,35 @@ fun QueueBottomSheet(
                 modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp)
             )
             
+            val fullQueue = playbackManager.getCurrentQueue()
+            val currentIdx = fullQueue.indexOfFirst { it.id == currentSong?.id }
+            val queueSections = playbackManager.queueSections
+            val displayItems = remember(queueSections, fullQueue, currentIdx) {
+                if (queueSections.isNotEmpty() && currentIdx != -1) {
+                    buildList<QueueItem> {
+                        for (section in queueSections) {
+                            val sectionStart = maxOf(section.startIndex, currentIdx + 1).coerceAtMost(fullQueue.size)
+                            val sectionEnd = minOf(section.startIndex + section.count, fullQueue.size)
+                            if (sectionStart >= sectionEnd) continue
+                            val songsInSection = fullQueue.subList(sectionStart, sectionEnd)
+                            add(QueueItem.Header(section.title))
+                            songsInSection.forEachIndexed { idx, song ->
+                                add(QueueItem.Song(song, idx, idx == 0, idx == songsInSection.lastIndex))
+                            }
+                        }
+                    }
+                } else {
+                    val nextSongs = if (currentIdx != -1 && currentIdx < fullQueue.size - 1) {
+                        fullQueue.subList(currentIdx + 1, fullQueue.size)
+                    } else {
+                        emptyList()
+                    }
+                    nextSongs.mapIndexed { idx, song ->
+                        QueueItem.Song(song, idx, idx == 0, idx == nextSongs.lastIndex)
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -659,118 +693,129 @@ fun QueueBottomSheet(
                     )
                 }
 
-                val fullQueue = playbackManager.getCurrentQueue()
-                val currentIdx = fullQueue.indexOfFirst { it.id == currentSong?.id }
-                val nextSongs = if (currentIdx != -1 && currentIdx < fullQueue.size - 1) {
-                    fullQueue.subList(currentIdx + 1, fullQueue.size)
-                } else {
-                    emptyList()
-                }
-                
-                items(nextSongs, key = { it.id }) { song ->
-                    val isFirst = nextSongs.first() == song
-                    val isLast = nextSongs.last() == song
-                    var rawOffset by remember { mutableFloatStateOf(0f) }
-                    var isDragging by remember { mutableStateOf(false) }
-                    val displayOffset by animateFloatAsState(
-                        targetValue = if (isDragging) rawOffset else 0f,
-                        animationSpec = if (isDragging) snap() else tween(durationMillis = 250),
-                        label = "swipe"
-                    )
-                    val threshold = with(LocalDensity.current) { 80.dp.toPx() }
-                    val maxOffset = with(LocalDensity.current) { 150.dp.toPx() }
-                    Box {
-                        val swipeProgress = (abs(displayOffset) / threshold).coerceAtMost(1f)
-                        if (displayOffset > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 24.dp)
-                                    .size(40.dp)
-                                    .graphicsLayer {
-                                        alpha = swipeProgress
-                                        scaleX = swipeProgress
-                                        scaleY = swipeProgress
-                                    }
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.errorContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+
+                items(displayItems, key = { item ->
+                    when (item) {
+                        is QueueItem.Header -> "header_${item.title}"
+                        is QueueItem.Song -> "song_${item.song.id}"
+                    }
+                }) { item ->
+                    when (item) {
+                        is QueueItem.Header -> {
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)
+                            )
                         }
-                        if (displayOffset < 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(end = 24.dp)
-                                    .size(40.dp)
-                                    .graphicsLayer {
-                                        alpha = swipeProgress
-                                        scaleX = swipeProgress
-                                        scaleY = swipeProgress
-                                    }
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.tertiaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.SkipNext,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Box(modifier = Modifier.offset { IntOffset(displayOffset.roundToInt(), 0) }) {
-                            SongItem(
-                                isFirst = isFirst,
-                                isLast = isLast,
-                                song = song,
-                                currentlyPlaying = false,
-                                isPlaying = false,
-                                onClick = {
-                                    playbackManager.play(song, activePlaylist, playbackManager.activePlaylistId, playbackManager.activeCategory, fromQueue = true)
-                                },
-                                onOptionsClick = {
-                                    optionsSong = song
-                                    showOptionsSheet = true
-                                },
-                                onFavoriteClick = { s ->
-                                    playbackManager.toggleFavorite(s)?.let { updated ->
-                                        musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
-                                    }
-                                },
-                                modifier = Modifier.pointerInput(song.id) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = {
-                                            rawOffset = 0f
-                                            isDragging = true
-                                        },
-                                        onDragEnd = {
-                                            isDragging = false
-                                            if (rawOffset < -threshold) {
-                                                playbackManager.moveToNextInQueue(song.id)
-                                            } else if (rawOffset > threshold) {
-                                                playbackManager.removeFromQueue(song.id)
+                        is QueueItem.Song -> {
+                            val song = item.song
+                            val isFirst = item.isFirstInSection
+                            val isLast = item.isLastInSection
+                            var rawOffset by remember { mutableFloatStateOf(0f) }
+                            var isDragging by remember { mutableStateOf(false) }
+                            val displayOffset by animateFloatAsState(
+                                targetValue = if (isDragging) rawOffset else 0f,
+                                animationSpec = if (isDragging) snap() else tween(durationMillis = 250),
+                                label = "swipe"
+                            )
+                            val threshold = with(LocalDensity.current) { 80.dp.toPx() }
+                            val maxOffset = with(LocalDensity.current) { 150.dp.toPx() }
+                            Box {
+                                val swipeProgress = (abs(displayOffset) / threshold).coerceAtMost(1f)
+                                if (displayOffset > 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterStart)
+                                            .padding(start = 24.dp)
+                                            .size(40.dp)
+                                            .graphicsLayer {
+                                                alpha = swipeProgress
+                                                scaleX = swipeProgress
+                                                scaleY = swipeProgress
                                             }
-                                            rawOffset = 0f
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.errorContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                if (displayOffset < 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterEnd)
+                                            .padding(end = 24.dp)
+                                            .size(40.dp)
+                                            .graphicsLayer {
+                                                alpha = swipeProgress
+                                                scaleX = swipeProgress
+                                                scaleY = swipeProgress
+                                            }
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.tertiaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.SkipNext,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Box(modifier = Modifier.offset { IntOffset(displayOffset.roundToInt(), 0) }) {
+                                    SongItem(
+                                        isFirst = isFirst,
+                                        isLast = isLast,
+                                        song = song,
+                                        currentlyPlaying = false,
+                                        isPlaying = false,
+                                        onClick = {
+                                            playbackManager.play(song, activePlaylist, playbackManager.activePlaylistId, playbackManager.activeCategory, fromQueue = true)
                                         },
-                                        onDragCancel = {
-                                            isDragging = false
-                                            rawOffset = 0f
+                                        onOptionsClick = {
+                                            optionsSong = song
+                                            showOptionsSheet = true
                                         },
-                                        onHorizontalDrag = { _, dragAmount ->
-                                            rawOffset = (rawOffset + dragAmount).coerceIn(-maxOffset, maxOffset)
+                                        onFavoriteClick = { s ->
+                                            playbackManager.toggleFavorite(s)?.let { updated ->
+                                                musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
+                                            }
+                                        },
+                                        modifier = Modifier.pointerInput(song.id) {
+                                            detectHorizontalDragGestures(
+                                                onDragStart = {
+                                                    rawOffset = 0f
+                                                    isDragging = true
+                                                },
+                                                onDragEnd = {
+                                                    isDragging = false
+                                                    if (rawOffset < -threshold) {
+                                                        playbackManager.moveToNextInQueue(song.id)
+                                                    } else if (rawOffset > threshold) {
+                                                        playbackManager.removeFromQueue(song.id)
+                                                    }
+                                                    rawOffset = 0f
+                                                },
+                                                onDragCancel = {
+                                                    isDragging = false
+                                                    rawOffset = 0f
+                                                },
+                                                onHorizontalDrag = { _, dragAmount ->
+                                                    rawOffset = (rawOffset + dragAmount).coerceIn(-maxOffset, maxOffset)
+                                                }
+                                            )
                                         }
                                     )
                                 }
-                            )
+                            }
                         }
                     }
                 }
