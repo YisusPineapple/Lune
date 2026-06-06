@@ -406,10 +406,13 @@ class MusicService : MediaBrowserServiceCompat() {
                 setVolume(1f, 1f)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     try {
-                        val speed = PlaybackManager.getInstance(applicationContext).playbackSpeed
-                        if (speed != 1.0f) {
+                        val pm = PlaybackManager.getInstance(applicationContext)
+                        val speed = pm.playbackSpeed
+                        val pitch = pm.playbackPitch
+                        if (speed != 1.0f || pitch != 1.0f) {
                             val params = playbackParams
                             params.speed = speed
+                            params.pitch = pitch
                             playbackParams = params
                         }
                     } catch (e: Exception) {}
@@ -519,11 +522,14 @@ class MusicService : MediaBrowserServiceCompat() {
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     try {
-                        val speed = PlaybackManager.getInstance(applicationContext).playbackSpeed
-                        if (speed != 1.0f) {
+                        val pm = PlaybackManager.getInstance(applicationContext)
+                        val speed = pm.playbackSpeed
+                        val pitch = pm.playbackPitch
+                        if (speed != 1.0f || pitch != 1.0f) {
                             secondaryPlayer?.let {
                                 val params = it.playbackParams
                                 params.speed = speed
+                                params.pitch = pitch
                                 it.playbackParams = params
                             }
                         }
@@ -672,19 +678,21 @@ class MusicService : MediaBrowserServiceCompat() {
     fun duration(): Int = mediaPlayer?.duration ?: 0
     fun getAudioSessionId(): Int = mediaPlayer?.audioSessionId ?: 0
 
-    fun setPlaybackSpeed(speed: Float) {
+    fun setPlaybackParams(speed: Float, pitch: Float) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 val wasPlaying = isPlaying()
                 mediaPlayer?.let {
                     val params = it.playbackParams
                     params.speed = speed
+                    params.pitch = pitch
                     it.playbackParams = params
                     if (!wasPlaying) it.pause()
                 }
                 secondaryPlayer?.let {
                     val params = it.playbackParams
                     params.speed = speed
+                    params.pitch = pitch
                     it.playbackParams = params
                     if (!wasPlaying) it.pause()
                 }

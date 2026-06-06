@@ -76,6 +76,8 @@ class PlaybackManager private constructor(private val context: Context) {
 
     var playbackSpeed by mutableStateOf(settings.playbackSpeed)
         private set
+    var playbackPitch by mutableStateOf(settings.playbackPitch)
+        private set
     var eqBandLevels by mutableStateOf(
         settings.eqBandLevels.split(",")
             .mapNotNull { it.toShortOrNull() }
@@ -1005,7 +1007,13 @@ class PlaybackManager private constructor(private val context: Context) {
     fun updatePlaybackSpeed(speed: Float) {
         playbackSpeed = speed
         settings.playbackSpeed = speed
-        musicService?.setPlaybackSpeed(speed)
+        musicService?.setPlaybackParams(speed, playbackPitch)
+    }
+
+    fun updatePitch(pitch: Float) {
+        playbackPitch = pitch
+        settings.playbackPitch = pitch
+        musicService?.setPlaybackParams(playbackSpeed, pitch)
     }
 
     fun getProgress(): Float {

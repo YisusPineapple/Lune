@@ -3,5 +3,6 @@
 - Fix bug in crossfade
 - Add new option in OnBoarding for folder filters
 - Add Chinese languaje
-- Improvement to the "BASS" option of the equalizer
+- Improvement to the "BASS" and "Spacial Audio" options of the equalizer
+- 
 - Minor changes and fixes

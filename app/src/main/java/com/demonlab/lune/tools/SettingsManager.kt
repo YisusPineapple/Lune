@@ -282,6 +282,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getFloat("playback_speed", 1.0f)
         set(value) = prefs.edit().putFloat("playback_speed", value).apply()
 
+    var playbackPitch: Float
+        get() = prefs.getFloat("playback_pitch", 1.0f)
+        set(value) = prefs.edit().putFloat("playback_pitch", value).apply()
+
     fun getPlaylistShuffle(playlistId: Long): Boolean {
         return prefs.getBoolean("shuffle_playlist_$playlistId", false)
     }

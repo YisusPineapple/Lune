@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.demonlab.lune.R
+import kotlin.math.roundToInt
 import com.demonlab.lune.tools.PlaybackManager
 import com.demonlab.lune.tools.SettingsManager
 import com.demonlab.lune.ui.theme.LuneTheme
@@ -394,6 +395,62 @@ fun EqualizerScreen(onBack: () -> Unit) {
                     }
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            var pitchValue by remember { mutableStateOf(playbackManager.playbackPitch) }
+
+            LaunchedEffect(playbackManager.playbackPitch) {
+                pitchValue = playbackManager.playbackPitch
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.pitch_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "%.2fx".format(pitchValue),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(52.dp)
+                    )
+                    if (pitchValue != 1.0f) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                pitchValue = 1.0f
+                                playbackManager.updatePitch(1.0f)
+                            },
+                            enabled = isEnabled,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.pitch_reset),
+                                tint = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Slider(
+                value = pitchValue.coerceIn(0.5f, 2.0f),
+                onValueChange = {
+                    pitchValue = (it * 10f).roundToInt() / 10f
+                    playbackManager.updatePitch(pitchValue)
+                },
+                enabled = isEnabled,
+                valueRange = 0.5f..2.0f,
+                steps = 14
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
