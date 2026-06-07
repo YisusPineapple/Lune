@@ -65,6 +65,10 @@ class PlaylistBackupManager(context: Context) {
             val allSongs = musicProvider.syncSongs()
 
             exportData.playlists.forEach { playlistData ->
+                val existing = dao.getPlaylistByName(playlistData.name)
+                if (existing != null) {
+                    dao.deletePlaylist(existing)
+                }
                 val playlistId = dao.insertPlaylist(Playlist(name = playlistData.name))
 
                 val songsToAdd = playlistData.songs.mapNotNull { meta ->
