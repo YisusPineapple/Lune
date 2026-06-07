@@ -4,6 +4,7 @@ import android.content.Context
 import com.demonlab.lune.data.MusicDatabase
 import com.demonlab.lune.data.Playlist
 import com.demonlab.lune.data.PlaylistSong
+import com.demonlab.lune.data.PlaybackStats
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
@@ -12,8 +13,10 @@ import java.io.InputStream
 import java.io.OutputStream
 
 data class PlaylistExportData(
-    val version: Int = 1,
-    val playlists: List<PlaylistData>,
+    val version: Int = 2,
+    val playlists: List<PlaylistData> = emptyList(),
+    val settings: SettingsBackupData? = null,
+    val playbackStats: List<PlaybackStats>? = null
 )
 
 data class PlaylistData(
@@ -28,12 +31,77 @@ data class SongMetadata(
     val dateAdded: Long = 0,
 )
 
+data class SettingsBackupData(
+    val optionsOrder: String? = null,
+    val hiddenFolders: List<String>? = null,
+    val enableHiFi: Boolean? = null,
+    val themeMode: Int? = null,
+    val forceDarkMode: Boolean? = null,
+    val sortOption: String? = null,
+    val albumViewStyle: Int? = null,
+    val isSortAscending: Boolean? = null,
+    val isShuffle: Boolean? = null,
+    val isCrossfade: Boolean? = null,
+    val isAutomix: Boolean? = null,
+    val repeatMode: Int? = null,
+    val isEqEnabled: Boolean? = null,
+    val eqBandLevels: String? = null,
+    val activeEqPresetName: String? = null,
+    val lastEqPresetName: String? = null,
+    val lastEqBandLevels: String? = null,
+    val customEqPresetsJson: String? = null,
+    val isBassBoostEnabled: Boolean? = null,
+    val bassBoostLevel: Int? = null,
+    val isSpatialAudioEnabled: Boolean? = null,
+    val language: String? = null,
+    val customTitle: String? = null,
+    val isFullPlayerVisualizerEnabled: Boolean? = null,
+    val isMiniPlayerVisualizerEnabled: Boolean? = null,
+    val isCinematicPlayerEnabled: Boolean? = null,
+    val isHapticVibrationEnabled: Boolean? = null,
+    val isSongInfoEnabled: Boolean? = null,
+    val isBlurEnabled: Boolean? = null,
+    val isBlurDarkMode: Boolean? = null,
+    val isBlurLightMode: Boolean? = null,
+    val isBlurCinematicMode: Boolean? = null,
+    val isBlurControlsEnabled: Boolean? = null,
+    val lyricsTextAlignment: Int? = null,
+    val lyricsSpeedIndex: Int? = null,
+    val isGesturesEnabled: Boolean? = null,
+    val swipeUpAction: Int? = null,
+    val dailyListeningTime: Long? = null,
+    val lastStatsResetTimestamp: Long? = null,
+    val showAllFoldersOnStart: Boolean? = null,
+    val useCustomColors: Boolean? = null,
+    val customColorPalette: Int? = null,
+    val showBackupWarning: Boolean? = null,
+    val useAmoledPitchBlack: Boolean? = null,
+    val coverShape: Int? = null,
+    val coverScale: Float? = null,
+    val coverSpin: Boolean? = null,
+    val coverVinylEffect: Boolean? = null,
+    val controlsIconStyle: Int? = null,
+    val isControlsFilled: Boolean? = null,
+    val useCustomControlsColor: Boolean? = null,
+    val controlsColorPalette: Int? = null,
+    val playbackSpeed: Float? = null,
+    val playbackPitch: Float? = null,
+    val reverbPreset: Int? = null,
+    val balance: Float? = null,
+    val dynamicsPreset: Int? = null,
+    val isLoudnessEnabled: Boolean? = null,
+    val loudnessGain: Int? = null
+)
+
 private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
 
-class PlaylistBackupManager(context: Context) {
+class PlaylistBackupManager(private val context: Context) {
 
-    private val dao = MusicDatabase.getDatabase(context).playlistDao()
+    private val db = MusicDatabase.getDatabase(context)
+    private val dao = db.playlistDao()
+    private val statsDao = db.playbackStatsDao()
     private val musicProvider = MusicProvider(context)
+    private val settings = SettingsManager.getInstance(context)
 
     suspend fun exportPlaylists(outputStream: OutputStream): Boolean = withContext(Dispatchers.IO) {
         runCatching {
@@ -41,15 +109,88 @@ class PlaylistBackupManager(context: Context) {
                 .ifEmpty { musicProvider.syncSongs() }
                 .associateBy { it.id }
 
+            // 1. Get all playlists
+            val playlistsBackup = dao.getAllPlaylists().map { playlist ->
+                PlaylistData(
+                    name = playlist.name,
+                    songs = dao.getSongIdsForPlaylist(playlist.id).mapNotNull { id ->
+                        songsMap[id]?.let { SongMetadata(it.title, it.artist, it.duration, it.dateAdded) }
+                    },
+                )
+            }
+
+            // 2. Serialize the entire state of SettingsManager
+            val settingsBackup = SettingsBackupData(
+                optionsOrder = settings.optionsOrder,
+                hiddenFolders = settings.hiddenFolders.toList(),
+                enableHiFi = settings.enableHiFi,
+                themeMode = settings.themeMode,
+                forceDarkMode = settings.forceDarkMode,
+                sortOption = settings.sortOption,
+                albumViewStyle = settings.albumViewStyle,
+                isSortAscending = settings.isSortAscending,
+                isShuffle = settings.isShuffle,
+                isCrossfade = settings.isCrossfade,
+                isAutomix = settings.isAutomix,
+                repeatMode = settings.repeatMode,
+                isEqEnabled = settings.isEqEnabled,
+                eqBandLevels = settings.eqBandLevels,
+                activeEqPresetName = settings.activeEqPresetName,
+                lastEqPresetName = settings.lastEqPresetName,
+                lastEqBandLevels = settings.lastEqBandLevels,
+                customEqPresetsJson = settings.customEqPresetsJson,
+                isBassBoostEnabled = settings.isBassBoostEnabled,
+                bassBoostLevel = settings.bassBoostLevel,
+                isSpatialAudioEnabled = settings.isSpatialAudioEnabled,
+                language = settings.language,
+                customTitle = settings.customTitle,
+                isFullPlayerVisualizerEnabled = settings.isFullPlayerVisualizerEnabled,
+                isMiniPlayerVisualizerEnabled = settings.isMiniPlayerVisualizerEnabled,
+                isCinematicPlayerEnabled = settings.isCinematicPlayerEnabled,
+                isHapticVibrationEnabled = settings.isHapticVibrationEnabled,
+                isSongInfoEnabled = settings.isSongInfoEnabled,
+                isBlurEnabled = settings.isBlurEnabled,
+                isBlurDarkMode = settings.isBlurDarkMode,
+                isBlurLightMode = settings.isBlurLightMode,
+                isBlurCinematicMode = settings.isBlurCinematicMode,
+                isBlurControlsEnabled = settings.isBlurControlsEnabled,
+                lyricsTextAlignment = settings.lyricsTextAlignment,
+                lyricsSpeedIndex = settings.lyricsSpeedIndex,
+                isGesturesEnabled = settings.isGesturesEnabled,
+                swipeUpAction = settings.swipeUpAction,
+                dailyListeningTime = settings.dailyListeningTime,
+                lastStatsResetTimestamp = settings.lastStatsResetTimestamp,
+                showAllFoldersOnStart = settings.showAllFoldersOnStart,
+                useCustomColors = settings.useCustomColors,
+                customColorPalette = settings.customColorPalette,
+                showBackupWarning = settings.showBackupWarning,
+                useAmoledPitchBlack = settings.useAmoledPitchBlack,
+                coverShape = settings.coverShape,
+                coverScale = settings.coverScale,
+                coverSpin = settings.coverSpin,
+                coverVinylEffect = settings.coverVinylEffect,
+                controlsIconStyle = settings.controlsIconStyle,
+                isControlsFilled = settings.isControlsFilled,
+                useCustomControlsColor = settings.useCustomControlsColor,
+                controlsColorPalette = settings.controlsColorPalette,
+                playbackSpeed = settings.playbackSpeed,
+                playbackPitch = settings.playbackPitch,
+                reverbPreset = settings.reverbPreset,
+                balance = settings.balance,
+                dynamicsPreset = settings.dynamicsPreset,
+                isLoudnessEnabled = settings.isLoudnessEnabled,
+                loudnessGain = settings.loudnessGain
+            )
+
+            // 3. Retrieve Room's cumulative playback statistics
+            val playbackStatsBackup = statsDao.getAllStats()
+
+            // 4. Integrate everything into the new v2 container
             val exportData = PlaylistExportData(
-                playlists = dao.getAllPlaylists().map { playlist ->
-                    PlaylistData(
-                        name = playlist.name,
-                        songs = dao.getSongIdsForPlaylist(playlist.id).mapNotNull { id ->
-                            songsMap[id]?.let { SongMetadata(it.title, it.artist, it.duration, it.dateAdded) }
-                        },
-                    )
-                },
+                version = 2,
+                playlists = playlistsBackup,
+                settings = settingsBackup,
+                playbackStats = playbackStatsBackup
             )
 
             outputStream.bufferedWriter().use { it.write(gson.toJson(exportData)) }
@@ -62,6 +203,7 @@ class PlaylistBackupManager(context: Context) {
                 .use { gson.fromJson(it, PlaylistExportData::class.java) }
                 ?: return@withContext false
 
+            // 1. Restore Playlists (Compatible with both v1 and v2)
             val allSongs = musicProvider.syncSongs()
 
             exportData.playlists.forEach { playlistData ->
@@ -80,6 +222,76 @@ class PlaylistBackupManager(context: Context) {
                 }
 
                 if (songsToAdd.isNotEmpty()) dao.addSongsToPlaylist(songsToAdd)
+            }
+
+            // 2. Restore Lune settings (only if they exist in the input JSON)
+            exportData.settings?.let { backup ->
+                backup.optionsOrder?.let { settings.optionsOrder = it }
+                backup.hiddenFolders?.let { settings.hiddenFolders = it.toSet() }
+                backup.enableHiFi?.let { settings.enableHiFi = it }
+                backup.themeMode?.let { settings.themeMode = it }
+                backup.forceDarkMode?.let { settings.forceDarkMode = it }
+                backup.sortOption?.let { settings.sortOption = it }
+                backup.albumViewStyle?.let { settings.albumViewStyle = it }
+                backup.isSortAscending?.let { settings.isSortAscending = it }
+                backup.isShuffle?.let { settings.isShuffle = it }
+                backup.isCrossfade?.let { settings.isCrossfade = it }
+                backup.isAutomix?.let { settings.isAutomix = it }
+                backup.repeatMode?.let { settings.repeatMode = it }
+                backup.isEqEnabled?.let { settings.isEqEnabled = it }
+                backup.eqBandLevels?.let { settings.eqBandLevels = it }
+                backup.activeEqPresetName?.let { settings.activeEqPresetName = it }
+                backup.lastEqPresetName?.let { settings.lastEqPresetName = it }
+                backup.lastEqBandLevels?.let { settings.lastEqBandLevels = it }
+                backup.customEqPresetsJson?.let { settings.customEqPresetsJson = it }
+                backup.isBassBoostEnabled?.let { settings.isBassBoostEnabled = it }
+                backup.bassBoostLevel?.let { settings.bassBoostLevel = it }
+                backup.isSpatialAudioEnabled?.let { settings.isSpatialAudioEnabled = it }
+                backup.language?.let { settings.language = it }
+                backup.customTitle?.let { settings.customTitle = it }
+                backup.isFullPlayerVisualizerEnabled?.let { settings.isFullPlayerVisualizerEnabled = it }
+                backup.isMiniPlayerVisualizerEnabled?.let { settings.isMiniPlayerVisualizerEnabled = it }
+                backup.isCinematicPlayerEnabled?.let { settings.isCinematicPlayerEnabled = it }
+                backup.isHapticVibrationEnabled?.let { settings.isHapticVibrationEnabled = it }
+                backup.isSongInfoEnabled?.let { settings.isSongInfoEnabled = it }
+                backup.isBlurEnabled?.let { settings.isBlurEnabled = it }
+                backup.isBlurDarkMode?.let { settings.isBlurDarkMode = it }
+                backup.isBlurLightMode?.let { settings.isBlurLightMode = it }
+                backup.isBlurCinematicMode?.let { settings.isBlurCinematicMode = it }
+                backup.isBlurControlsEnabled?.let { settings.isBlurControlsEnabled = it }
+                backup.lyricsTextAlignment?.let { settings.lyricsTextAlignment = it }
+                backup.lyricsSpeedIndex?.let { settings.lyricsSpeedIndex = it }
+                backup.isGesturesEnabled?.let { settings.isGesturesEnabled = it }
+                backup.swipeUpAction?.let { settings.swipeUpAction = it }
+                backup.dailyListeningTime?.let { settings.dailyListeningTime = it }
+                backup.lastStatsResetTimestamp?.let { settings.lastStatsResetTimestamp = it }
+                backup.showAllFoldersOnStart?.let { settings.showAllFoldersOnStart = it }
+                backup.useCustomColors?.let { settings.useCustomColors = it }
+                backup.customColorPalette?.let { settings.customColorPalette = it }
+                backup.showBackupWarning?.let { settings.showBackupWarning = it }
+                backup.useAmoledPitchBlack?.let { settings.useAmoledPitchBlack = it }
+                backup.coverShape?.let { settings.coverShape = it }
+                backup.coverScale?.let { settings.coverScale = it }
+                backup.coverSpin?.let { settings.coverSpin = it }
+                backup.coverVinylEffect?.let { settings.coverVinylEffect = it }
+                backup.controlsIconStyle?.let { settings.controlsIconStyle = it }
+                backup.isControlsFilled?.let { settings.isControlsFilled = it }
+                backup.useCustomControlsColor?.let { settings.useCustomControlsColor = it }
+                backup.controlsColorPalette?.let { settings.controlsColorPalette = it }
+                backup.playbackSpeed?.let { settings.playbackSpeed = it }
+                backup.playbackPitch?.let { settings.playbackPitch = it }
+                backup.reverbPreset?.let { settings.reverbPreset = it }
+                backup.balance?.let { settings.balance = it }
+                backup.dynamicsPreset?.let { settings.dynamicsPreset = it }
+                backup.isLoudnessEnabled?.let { settings.isLoudnessEnabled = it }
+                backup.loudnessGain?.let { settings.loudnessGain = it }
+            }
+
+            // 3. Restore Room's cumulative playback statistics
+            exportData.playbackStats?.let { statsList ->
+                if (statsList.isNotEmpty()) {
+                    statsDao.insertStatsList(statsList)
+                }
             }
         }.isSuccess
     }

@@ -119,6 +119,12 @@ interface PlaybackStatsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStats(stats: PlaybackStats)
+
+    @Query("SELECT * FROM playback_stats")
+    suspend fun getAllStats(): List<PlaybackStats>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStatsList(statsList: List<PlaybackStats>)
 }
 
 @Database(
