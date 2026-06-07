@@ -312,4 +312,5 @@
     <!-- Processing Indicator Strings -->
     <string name="exporting_backup">Exporting backup, please wait...</string>
     <string name="importing_backup">Importing backup, please wait...</string>
+    <string name="finalizing_backup">Finalizing restoration, please wait...</string>
 </resources>

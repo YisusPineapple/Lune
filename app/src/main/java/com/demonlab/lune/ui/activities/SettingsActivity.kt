@@ -158,7 +158,6 @@ fun SettingsScreen(
                 context.contentResolver.openInputStream(it)?.use { inputStream ->
                     val success = backupManager.importPlaylists(inputStream)
                     if (success) {
-                        // Keep loader visible with a specialized status to allow Room transactions to settle
                         backupStatusMessage = context.getString(R.string.finalizing_backup)
                         delay(1200)
                         isProcessingBackup = false
@@ -240,7 +239,6 @@ fun SettingsScreen(
     }
 
     if (isProcessingBackup) {
-        // GPU-accelerated lightweight infinite looping transition for wavy progress
         val infiniteTransition = rememberInfiniteTransition(label = "BackupLoading")
         val wavyProgress = infiniteTransition.animateFloat(
             initialValue = 0f,
@@ -434,6 +432,139 @@ fun SettingsScreen(
             }
             
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+enum class SectionPosition {
+    FIRST, MIDDLE, LAST, SINGLE
+}
+
+@Composable
+fun SettingsSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+            fontWeight = FontWeight.Bold
+        )
+        content()
+    }
+}
+
+@Composable
+fun SettingsPreferenceItem(
+    headlineText: String,
+    supportingText: String? = null,
+    icon: ImageVector,
+    position: SectionPosition,
+    onClick: (() -> Unit)? = null,
+    trailingContent: @Composable (() -> Unit)? = null
+) {
+    val shape = when (position) {
+        SectionPosition.FIRST -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        SectionPosition.MIDDLE -> RoundedCornerShape(4.dp)
+        SectionPosition.LAST -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 28.dp, bottomEnd = 28.dp)
+        SectionPosition.SINGLE -> RoundedCornerShape(28.dp)
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        tonalElevation = 1.dp
+    ) {
+        ListItem(
+            headlineContent = { Text(headlineText, fontWeight = FontWeight.Bold) },
+            supportingContent = supportingText?.let { { Text(it) } },
+            leadingContent = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            },
+            trailingContent = trailingContent,
+            colors = ListItemDefaults.colors(
+                containerColor = androidx.compose.ui.graphics.Color.Transparent
+            )
+        )
+    }
+}
+
+@Composable
+fun BackupWarningCard(onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFFDE8E8),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF8B4B4))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color(0xFF9B1C1C),
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(com.demonlab.lune.R.string.backup_warning_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF9B1C1C)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(com.demonlab.lune.R.string.backup_warning_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9B1C1C).copy(alpha = 0.85f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFBD5D5))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color(0xFF9B1C1C),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

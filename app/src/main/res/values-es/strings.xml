@@ -152,7 +152,7 @@
     <string name="restore_default_title">Restaurar original</string>
     <string name="categories">Categorías</string>
     <string name="edit_information">Editar Información</string>
-    <string name="info_updated">Información actualizada</string>
+    <string name="info_updated">Information actualizada</string>
     <string name="info_restored">Información restaurada</string>
     <string name="player_queue">Cola</string>
     <string name="player_options">Opciones</string>
@@ -312,4 +312,5 @@
     <!-- Processing Indicator Strings -->
     <string name="exporting_backup">Exportando copia de seguridad, por favor espere...</string>
     <string name="importing_backup">Importando copia de seguridad, por favor espere...</string>
+    <string name="finalizing_backup">Finalizando restauración, por favor espere...</string>
 </resources>
