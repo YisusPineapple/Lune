@@ -54,6 +54,9 @@ interface SongOverrideDao {
 
     @Delete
     suspend fun deleteOverride(override: SongOverride)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOverrideList(overrides: List<SongOverride>)
 }
 
 @Dao

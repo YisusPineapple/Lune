@@ -2,6 +2,8 @@ package com.demonlab.lune.ui.activities
 
 import android.os.Bundle
 import android.content.Intent
+import android.app.Activity
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,7 +38,6 @@ import androidx.compose.runtime.*
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import android.widget.Toast
 import kotlinx.coroutines.launch
 import com.demonlab.lune.tools.PlaylistBackupManager
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import com.demonlab.lune.tools.SettingsManager
 import com.demonlab.lune.ui.theme.LuneTheme
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.demonlab.lune.BuildConfig
+import androidx.compose.ui.Alignment
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,13 +118,19 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val backupManager = remember { PlaylistBackupManager(context) }
 
+    var isProcessingBackup by remember { mutableStateOf(false) }
+    var backupStatusMessage by remember { mutableStateOf("") }
+
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         uri?.let {
             scope.launch {
+                isProcessingBackup = true
+                backupStatusMessage = context.getString(R.string.exporting_backup)
                 context.contentResolver.openOutputStream(it)?.use { outputStream ->
                     val success = backupManager.exportPlaylists(outputStream)
+                    isProcessingBackup = false
                     Toast.makeText(
                         context,
                         if (success) context.getString(R.string.export_success) else context.getString(R.string.export_error),
@@ -138,13 +146,26 @@ fun SettingsScreen(
     ) { uri ->
         uri?.let {
             scope.launch {
+                isProcessingBackup = true
+                backupStatusMessage = context.getString(R.string.importing_backup)
                 context.contentResolver.openInputStream(it)?.use { inputStream ->
                     val success = backupManager.importPlaylists(inputStream)
+                    isProcessingBackup = false
                     Toast.makeText(
                         context,
                         if (success) context.getString(R.string.import_success) else context.getString(R.string.import_error),
                         Toast.LENGTH_SHORT
                     ).show()
+                    if (success) {
+                        val code = settingsManager.language
+                        val appLocales: LocaleListCompat = if (code == "system") {
+                            LocaleListCompat.getEmptyLocaleList()
+                        } else {
+                            LocaleListCompat.forLanguageTags(code)
+                        }
+                        AppCompatDelegate.setApplicationLocales(appLocales)
+                        (context as? Activity)?.recreate()
+                    }
                 }
             }
         }
@@ -199,8 +220,36 @@ fun SettingsScreen(
         )
     }
 
-
-
+    if (isProcessingBackup) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            dismissButton = {},
+            title = null,
+            text = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(
+                        text = backupStatusMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -272,7 +321,6 @@ fun SettingsScreen(
                         )
                     }
                 )
-
 
                 SettingsPreferenceItem(
                     headlineText = stringResource(R.string.customization),
@@ -430,8 +478,6 @@ fun SettingsPreferenceItem(
     }
 }
 
-
-
 @Composable
 fun BackupWarningCard(onDismiss: () -> Unit) {
     Surface(
@@ -439,7 +485,7 @@ fun BackupWarningCard(onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(24.dp),
-        color = Color(0xFFFDE8E8), // Beautiful soft red background (pastel red)
+        color = Color(0xFFFDE8E8),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF8B4B4))
     ) {
         Row(
@@ -451,7 +497,7 @@ fun BackupWarningCard(onDismiss: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
-                tint = Color(0xFF9B1C1C), // Stronger red for icon
+                tint = Color(0xFF9B1C1C),
                 modifier = Modifier.size(24.dp)
             )
             
@@ -462,7 +508,7 @@ fun BackupWarningCard(onDismiss: () -> Unit) {
                     text = stringResource(com.demonlab.lune.R.string.backup_warning_title),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF9B1C1C) // Nice contrast text color
+                    color = Color(0xFF9B1C1C)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -479,7 +525,7 @@ fun BackupWarningCard(onDismiss: () -> Unit) {
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFBD5D5)) // Slightly darker soft red for button background
+                    .background(Color(0xFFFBD5D5))
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,

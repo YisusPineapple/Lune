@@ -161,8 +161,8 @@
     <string name="option_repeat_all">Repeat All</string>
     <string name="option_repeat_off">Off</string>
     <string name="output_speaker">Speaker</string>
-    <string name="output_headphones">Auriculares</string>
-    <string name="no_song_playing">Sin reproducción</string>
+    <string name="output_headphones">Headphones</string>
+    <string name="no_song_playing">No playback</string>
     <string name="output_bluetooth">Bluetooth</string>
     <string name="queue_now_playing">Now Playing</string>
     <string name="queue_up_next">Up Next</string>
@@ -227,15 +227,15 @@
     <string name="sort_duration">Duration</string>
     <string name="sort_date_added">Date Added</string>
     <string name="backup_warning_title">Important Notice</string>
-    <string name="backup_warning_desc">Lune only imports playlists pre-exported by this application. Ensure you have the corresponding music files stored on this device for proper playback.</string>
-    <string name="export_playlists">Export Playlists</string>
-    <string name="export_playlists_desc">Save your playlists to a file</string>
-    <string name="import_playlists">Import Playlists</string>
-    <string name="import_playlists_desc">Restore playlists from a file</string>
-    <string name="export_success">Playlists exported successfully</string>
-    <string name="export_error">Error exporting playlists</string>
-    <string name="import_success">Playlists imported successfully</string>
-    <string name="import_error">Error importing playlists</string>
+    <string name="backup_warning_desc">Lune only imports backups pre-exported by this application. Ensure you have the corresponding music files stored on this device for proper playback.</string>
+    <string name="export_playlists">Export Backup</string>
+    <string name="export_playlists_desc">Save your playlists, settings, and stats to a file</string>
+    <string name="import_playlists">Import Backup</string>
+    <string name="import_playlists_desc">Restore your playlists, settings, and stats from a file</string>
+    <string name="export_success">Backup exported successfully</string>
+    <string name="export_error">Error exporting backup</string>
+    <string name="import_success">Backup imported successfully</string>
+    <string name="import_error">Error importing backup</string>
     <string name="song_singular">song</string>
     <string name="song_plural">songs</string>
     <string name="no_music_available">No music available</string>
@@ -308,4 +308,8 @@
     <string name="monero">Monero</string>
     <string name="monero_address">88s5Re4p6a3P9TtqaG1G2Yeq5Ppp1w1npXebyLjktuxYgurFAGn4GRbKuPKGbx1pD1bBwohtAriL7JqB12ECp4SnMN1T3q9</string>
     <string name="copied">Copied to clipboard</string>
+    
+    <!-- Processing Indicator Strings -->
+    <string name="exporting_backup">Exporting backup, please wait...</string>
+    <string name="importing_backup">Importing backup, please wait...</string>
 </resources>

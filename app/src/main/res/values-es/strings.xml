@@ -119,7 +119,7 @@
     <string name="use_custom_colors_desc">Sobrescribe el color dinámico con colores preestablecidos</string>
     <string name="amoled_pitch_black">Pantalla AMOLED (Negro puro)</string>
     <string name="amoled_pitch_black_desc">Usa fondo negro puro en el modo oscuro</string>
-    <string name="media_player">Reproductor Multimedia</string>
+    <string name="media_player">Reproductor de Medios</string>
     <string name="haptic_vibration">Vibración óptica</string>
     <string name="haptic_vibration_desc">Vibración ligera al usar los controles del reproductor</string>
     <string name="song_info">Información de Canción</string>
@@ -227,15 +227,15 @@
     <string name="sort_duration">Duración</string>
     <string name="sort_date_added">Fecha de agregado</string>
     <string name="backup_warning_title">Aviso Importante</string>
-    <string name="backup_warning_desc">Lune solo importa listas pre-exportadas por esta aplicación. Asegúrate de tener los archivos de música correspondientes en este dispositivo para una correcta reproducción.</string>
-    <string name="export_playlists">Exportar Listas</string>
-    <string name="export_playlists_desc">Guardar tus listas en un archivo</string>
-    <string name="import_playlists">Importar Listas</string>
-    <string name="import_playlists_desc">Restaurar listas desde un archivo</string>
-    <string name="export_success">Listas exportadas con éxito</string>
-    <string name="export_error">Error al exportar listas</string>
-    <string name="import_success">Listas importadas con éxito</string>
-    <string name="import_error">Error al importar listas</string>
+    <string name="backup_warning_desc">Lune solo importa copias de seguridad pre-exportadas por esta aplicación. Asegúrate de tener los archivos de música correspondientes en este dispositivo para una correcta reproducción.</string>
+    <string name="export_playlists">Exportar copia de seguridad</string>
+    <string name="export_playlists_desc">Guarda tus listas, ajustes e historial en un archivo</string>
+    <string name="import_playlists">Importar copia de seguridad</string>
+    <string name="import_playlists_desc">Restaura tus listas, ajustes e historial desde un archivo</string>
+    <string name="export_success">Copia de seguridad exportada con éxito</string>
+    <string name="export_error">Error al exportar la copia de seguridad</string>
+    <string name="import_success">Copia de seguridad importada con éxito</string>
+    <string name="import_error">Error al importar la copia de seguridad</string>
     <string name="song_singular">canción</string>
     <string name="song_plural">canciones</string>
     <string name="no_music_available">No hay música disponible</string>
@@ -308,4 +308,8 @@
     <string name="monero">Monero</string>
     <string name="monero_address">88s5Re4p6a3P9TtqaG1G2Yeq5Ppp1w1npXebyLjktuxYgurFAGn4GRbKuPKGbx1pD1bBwohtAriL7JqB12ECp4SnMN1T3q9</string>
     <string name="copied">Copiado al portapapeles</string>
+    
+    <!-- Processing Indicator Strings -->
+    <string name="exporting_backup">Exportando copia de seguridad, por favor espere...</string>
+    <string name="importing_backup">Importando copia de seguridad, por favor espere...</string>
 </resources>

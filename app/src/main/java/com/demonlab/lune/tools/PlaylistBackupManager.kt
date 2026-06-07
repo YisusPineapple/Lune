@@ -5,6 +5,7 @@ import com.demonlab.lune.data.MusicDatabase
 import com.demonlab.lune.data.Playlist
 import com.demonlab.lune.data.PlaylistSong
 import com.demonlab.lune.data.PlaybackStats
+import com.demonlab.lune.data.SongOverride
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,8 @@ data class PlaylistExportData(
     val version: Int = 2,
     val playlists: List<PlaylistData> = emptyList(),
     val settings: SettingsBackupData? = null,
-    val playbackStats: List<PlaybackStats>? = null
+    val playbackStats: List<PlaybackStats>? = null,
+    val songOverrides: List<SongOverride>? = null
 )
 
 data class PlaylistData(
@@ -100,6 +102,7 @@ class PlaylistBackupManager(private val context: Context) {
     private val db = MusicDatabase.getDatabase(context)
     private val dao = db.playlistDao()
     private val statsDao = db.playbackStatsDao()
+    private val overrideDao = db.songOverrideDao()
     private val musicProvider = MusicProvider(context)
     private val settings = SettingsManager.getInstance(context)
 
@@ -109,7 +112,7 @@ class PlaylistBackupManager(private val context: Context) {
                 .ifEmpty { musicProvider.syncSongs() }
                 .associateBy { it.id }
 
-            // 1. Get all playlists
+            // 1. Fetch Playlists
             val playlistsBackup = dao.getAllPlaylists().map { playlist ->
                 PlaylistData(
                     name = playlist.name,
@@ -119,7 +122,7 @@ class PlaylistBackupManager(private val context: Context) {
                 )
             }
 
-            // 2. Serialize the entire state of SettingsManager
+            // 2. Fetch SharedPreferences State
             val settingsBackup = SettingsBackupData(
                 optionsOrder = settings.optionsOrder,
                 hiddenFolders = settings.hiddenFolders.toList(),
@@ -182,15 +185,19 @@ class PlaylistBackupManager(private val context: Context) {
                 loudnessGain = settings.loudnessGain
             )
 
-            // 3. Retrieve Room's cumulative playback statistics
+            // 3. Fetch Playback Statistics from Room
             val playbackStatsBackup = statsDao.getAllStats()
 
-            // 4. Integrate everything into the new v2 container
+            // 4. Fetch Metadata Overrides & Favorite Statuses from Room
+            val songOverridesBackup = overrideDao.getAllOverrides()
+
+            // 5. Package everything into v2 Backup Container
             val exportData = PlaylistExportData(
                 version = 2,
                 playlists = playlistsBackup,
                 settings = settingsBackup,
-                playbackStats = playbackStatsBackup
+                playbackStats = playbackStatsBackup,
+                songOverrides = songOverridesBackup
             )
 
             outputStream.bufferedWriter().use { it.write(gson.toJson(exportData)) }
@@ -203,7 +210,7 @@ class PlaylistBackupManager(private val context: Context) {
                 .use { gson.fromJson(it, PlaylistExportData::class.java) }
                 ?: return@withContext false
 
-            // 1. Restore Playlists (Compatible with both v1 and v2)
+            // 1. Restore Playlists (Compatible with v1 and v2)
             val allSongs = musicProvider.syncSongs()
 
             exportData.playlists.forEach { playlistData ->
@@ -224,7 +231,7 @@ class PlaylistBackupManager(private val context: Context) {
                 if (songsToAdd.isNotEmpty()) dao.addSongsToPlaylist(songsToAdd)
             }
 
-            // 2. Restore Lune settings (only if they exist in the input JSON)
+            // 2. Restore Lune Settings (v2 Only)
             exportData.settings?.let { backup ->
                 backup.optionsOrder?.let { settings.optionsOrder = it }
                 backup.hiddenFolders?.let { settings.hiddenFolders = it.toSet() }
@@ -287,10 +294,17 @@ class PlaylistBackupManager(private val context: Context) {
                 backup.loudnessGain?.let { settings.loudnessGain = it }
             }
 
-            // 3. Restore Room's cumulative playback statistics
+            // 3. Restore Playback Statistics (v2 Only)
             exportData.playbackStats?.let { statsList ->
                 if (statsList.isNotEmpty()) {
                     statsDao.insertStatsList(statsList)
+                }
+            }
+
+            // 4. Restore Song Overrides and Likes (v2 Only)
+            exportData.songOverrides?.let { overridesList ->
+                if (overridesList.isNotEmpty()) {
+                    overrideDao.insertOverrideList(overridesList)
                 }
             }
         }.isSuccess
