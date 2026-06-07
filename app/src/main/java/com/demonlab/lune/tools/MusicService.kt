@@ -587,12 +587,13 @@ class MusicService : MediaBrowserServiceCompat() {
                     }
                     if (!isCrossfading) break
 
-                    val normalizedNext = i.toFloat() / steps
+                    val progress = i.toFloat() / steps
 
-                    // Universal constant power curve to avoid volume dips
-                    val angle = (normalizedNext * Math.PI / 2)
-                    val volNext = Math.sin(angle).toFloat()
-                    val volCurrent = Math.cos(angle).toFloat()
+                    // Asymmetric crossfade: outgoing track fades out fast (quadratic),
+                    // incoming track fades in complementary. Cross point at ~30%,
+                    // avoids the muddy overlap of a constant-power curve.
+                    val volCurrent = (1 - progress) * (1 - progress)
+                    val volNext = 1 - ((1 - progress) * (1 - progress))
 
                     mediaPlayer?.setVolume(volCurrent, volCurrent)
                     secondaryPlayer?.setVolume(volNext, volNext)
