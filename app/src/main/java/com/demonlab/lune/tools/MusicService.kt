@@ -16,7 +16,6 @@ import androidx.media.MediaBrowserServiceCompat
 import com.demonlab.lune.data.MusicDatabase
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
-import coil.ImageLoader
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -427,6 +426,21 @@ class MusicService : MediaBrowserServiceCompat() {
         secondaryPlayer = null
 
         mediaPlayer = MediaPlayer().apply {
+            // Apply platform-native Spatial Audio Attributes on Android 12+ (API 32+)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .apply {
+                    if (Build.VERSION.SDK_INT >= 32) {
+                        setSpatializationBehavior(
+                            if (settingsManager.isSpatialAudioEnabled) AudioAttributes.SPATIALIZATION_BEHAVIOR_AUTO
+                            else AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER
+                        )
+                    }
+                }
+                .build()
+            setAudioAttributes(audioAttributes)
+
             setDataSource(applicationContext, song.uri)
             setOnPreparedListener {
                 start()
@@ -517,7 +531,22 @@ class MusicService : MediaBrowserServiceCompat() {
         secondaryPlayer?.setOnErrorListener(null)
         secondaryPlayer?.release()
 
-        secondaryPlayer = MediaPlayer()
+        secondaryPlayer = MediaPlayer().apply {
+            // Apply platform-native Spatial Audio Attributes on Android 12+ (API 32+)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .apply {
+                    if (Build.VERSION.SDK_INT >= 32) {
+                        setSpatializationBehavior(
+                            if (settingsManager.isSpatialAudioEnabled) AudioAttributes.SPATIALIZATION_BEHAVIOR_AUTO
+                            else AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER
+                        )
+                    }
+                }
+                .build()
+            setAudioAttributes(audioAttributes)
+        }
 
         playbackManager.clearLyrics()
         serviceScope.launch {
