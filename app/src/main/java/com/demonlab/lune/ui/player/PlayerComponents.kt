@@ -1303,7 +1303,7 @@ fun MiniPlayer(
     isControlsFilled: Boolean,
     useCustomControlsColor: Boolean,
     controlsColorPalette: Int,
-    shape: Shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     hasBlurBackground: Boolean = false,
     isDarkTheme: Boolean = false,
     onTogglePlay: () -> Unit,
@@ -1314,6 +1314,8 @@ fun MiniPlayer(
     onScrollToCurrent: (() -> Unit)? = null,
     onMinimize: (() -> Unit)? = null
 ) {
+    // M3E: Use spring physics for organic rotation instead of linear easing when possible, 
+    // but for continuous spin, linear is required. We keep it hardware accelerated.
     val infiniteSpinTransition = rememberInfiniteTransition(label = "MiniPlayerSpin")
     val spinRotation by infiniteSpinTransition.animateFloat(
         initialValue = 0f,
@@ -1325,9 +1327,18 @@ fun MiniPlayer(
         label = "SpinAnimation"
     )
 
+    // M3E: Spring animation for play/pause morphing effect
+    val playPauseScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0.85f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "PlayPauseScale"
+    )
+
     val miniContext = LocalContext.current
     val blurContainerColorMini = if (isDarkTheme) Color.Black.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.4f)
-    val blurPlayContainerColorMini = if (isDarkTheme) Color.Black.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.5f)
 
     Surface(
         modifier = Modifier
@@ -1339,14 +1350,21 @@ fun MiniPlayer(
         tonalElevation = if (hasBlurBackground) 0.dp else 8.dp
     ) {
         Box {
+            // Background Layer
             if (hasBlurBackground) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(80.dp)
-                        .alpha(if (isDarkTheme) 0.2f else 0.35f)
+                        .graphicsLayer {
+                            // Hardware acceleration for blur and alpha
+                            alpha = if (isDarkTheme) 0.2f else 0.35f
+                            renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                radiusX = 80.dp.toPx(),
+                                radiusY = 80.dp.toPx()
+                            )
+                        }
                 ) {
-                    val miniBlurRequest = remember(song.id) {
+                    val miniBlurRequest = remember(song.id, miniContext) {
                         ImageRequest.Builder(miniContext)
                             .data(song.coverUrl ?: song.albumArtUri ?: R.drawable.ic_launcher_foreground)
                             .crossfade(true)
@@ -1368,30 +1386,43 @@ fun MiniPlayer(
                 }
             }
 
+            // Visualizer Layer
             if (showWaveform) {
                 WaveformVisualizer(
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(0.3f)
-                        .blur(16.dp),
+                        .graphicsLayer {
+                            alpha = 0.3f
+                            renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                radiusX = 16.dp.toPx(),
+                                radiusY = 16.dp.toPx()
+                            )
+                        },
                     magnitudes = visualizerData,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            // Content Layer
             Column(
                 modifier = Modifier
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .fillMaxSize()
             ) {
+                // Top Row: Cover, Info, Minimize Button
                 Box(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Cover Art
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .scale(coverScale),
+                                .graphicsLayer {
+                                    scaleX = coverScale
+                                    scaleY = coverScale
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             if (coverShape == 2 && coverVinylEffect) {
@@ -1410,7 +1441,9 @@ fun MiniPlayer(
                                     shape = activeShape,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .rotate(if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f),
+                                        .graphicsLayer {
+                                            rotationZ = if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f
+                                        },
                                     color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
                                     AsyncImage(
@@ -1425,6 +1458,7 @@ fun MiniPlayer(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
+                        // Track Info
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = song.title,
@@ -1444,7 +1478,9 @@ fun MiniPlayer(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = song.artist,
-                                    modifier = Modifier.basicMarquee().weight(1f, fill = false),
+                                    modifier = Modifier
+                                        .basicMarquee()
+                                        .weight(1f, fill = false),
                                     color = if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1
@@ -1453,10 +1489,13 @@ fun MiniPlayer(
                         }
                     }
 
+                    // Minimize Button
                     if (onMinimize != null) {
                         IconButton(
                             onClick = onMinimize,
-                            modifier = Modifier.align(Alignment.TopEnd).size(24.dp)
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
@@ -1467,6 +1506,7 @@ fun MiniPlayer(
                     }
                 }
 
+                // Bottom Row: Controls
                 val activePrimary = getControlsPrimaryColor(useCustomControlsColor, controlsColorPalette)
                 val pillMiniColor = if (useCustomControlsColor) {
                     activePrimary.copy(alpha = 0.25f)
@@ -1487,12 +1527,15 @@ fun MiniPlayer(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Search Button
                     if (onSearchClick != null) {
                         Surface(
                             onClick = onSearchClick,
                             shape = CircleShape,
                             color = pillMiniColor,
-                            modifier = Modifier.size(36.dp).bounceClick()
+                            modifier = Modifier
+                                .size(36.dp)
+                                .bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1509,6 +1552,7 @@ fun MiniPlayer(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Playback Controls
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -1517,7 +1561,9 @@ fun MiniPlayer(
                             onClick = onPrevious,
                             shape = RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp, topEnd = 4.dp, bottomEnd = 4.dp),
                             color = pillMiniColor,
-                            modifier = Modifier.size(40.dp).bounceClick()
+                            modifier = Modifier
+                                .size(40.dp)
+                                .bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 ReusableSkipIcon(
@@ -1533,14 +1579,21 @@ fun MiniPlayer(
                             onClick = onTogglePlay,
                             shape = RoundedCornerShape(4.dp),
                             color = pillMiniColor,
-                            modifier = Modifier.size(40.dp).bounceClick()
+                            modifier = Modifier
+                                .size(40.dp)
+                                .bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                                     contentDescription = null,
                                     tint = pillMiniIconTint,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            scaleX = playPauseScale
+                                            scaleY = playPauseScale
+                                        }
                                 )
                             }
                         }
@@ -1548,7 +1601,9 @@ fun MiniPlayer(
                             onClick = onNext,
                             shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 22.dp, bottomEnd = 22.dp),
                             color = pillMiniColor,
-                            modifier = Modifier.size(40.dp).bounceClick()
+                            modifier = Modifier
+                                .size(40.dp)
+                                .bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 ReusableSkipIcon(
@@ -1564,9 +1619,9 @@ fun MiniPlayer(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Scroll to Current Button
                     if (onScrollToCurrent != null) {
-                        val infiniteTransition = rememberInfiniteTransition(label = "ScrollPulse")
-                        val pulseScale by infiniteTransition.animateFloat(
+                        val pulseScale by infiniteSpinTransition.animateFloat(
                             initialValue = 1f,
                             targetValue = 1.15f,
                             animationSpec = infiniteRepeatable(
@@ -1579,7 +1634,13 @@ fun MiniPlayer(
                             onClick = onScrollToCurrent,
                             shape = CircleShape,
                             color = pillMiniColor,
-                            modifier = Modifier.size(36.dp).bounceClick().scale(pulseScale)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .bounceClick()
+                                .graphicsLayer {
+                                    scaleX = pulseScale
+                                    scaleY = pulseScale
+                                }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1630,7 +1691,10 @@ fun MiniPlayerMinimized(
         tonalElevation = if (hasBlurBackground) 0.dp else 8.dp,
         modifier = modifier
             .size(52.dp)
-            .scale(coverScale)
+            .graphicsLayer {
+                scaleX = coverScale
+                scaleY = coverScale
+            }
             .shadow(6.dp, CircleShape)
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -1638,8 +1702,13 @@ fun MiniPlayerMinimized(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(40.dp)
-                        .alpha(if (isDarkTheme) 0.2f else 0.35f)
+                        .graphicsLayer {
+                            alpha = if (isDarkTheme) 0.2f else 0.35f
+                            renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                radiusX = 40.dp.toPx(),
+                                radiusY = 40.dp.toPx()
+                            )
+                        }
                 ) {
                     val miniCtx = LocalContext.current
                     val blurRequest = remember(song.id, miniCtx) {
@@ -1663,6 +1732,7 @@ fun MiniPlayerMinimized(
                     )
                 }
             }
+            
             if (coverShape == 2 && coverVinylEffect) {
                 VinylRecordAsyncCover(
                     model = song.coverUrl ?: song.albumArtUri ?: R.drawable.ic_launcher_foreground,
@@ -1679,7 +1749,9 @@ fun MiniPlayerMinimized(
                     shape = activeShape,
                     modifier = Modifier
                         .fillMaxSize()
-                        .rotate(if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f),
+                        .graphicsLayer {
+                            rotationZ = if (coverShape == 2 && coverSpin && isPlaying) spinRotation else 0f
+                        },
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     AsyncImage(
