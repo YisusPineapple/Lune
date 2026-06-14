@@ -2,6 +2,7 @@ package com.demonlab.lune.tools
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -173,6 +174,38 @@ class SettingsManager(context: Context) {
     var isSongInfoEnabled: Boolean
         get() = prefs.getBoolean("is_song_info_enabled", false)
         set(value) = prefs.edit().putBoolean("is_song_info_enabled", value).apply()
+
+    private val _isBitrateOnList = mutableStateOf(prefs.getBoolean("is_bitrate_on_list", true))
+    var isBitrateOnList: Boolean
+        get() = _isBitrateOnList.value
+        set(value) {
+            _isBitrateOnList.value = value
+            prefs.edit().putBoolean("is_bitrate_on_list", value).apply()
+        }
+
+    private val _isBitrateOnPlayer = mutableStateOf(prefs.getBoolean("is_bitrate_on_player", true))
+    var isBitrateOnPlayer: Boolean
+        get() = _isBitrateOnPlayer.value
+        set(value) {
+            _isBitrateOnPlayer.value = value
+            prefs.edit().putBoolean("is_bitrate_on_player", value).apply()
+        }
+
+    private val _isOptionsBarVisible = mutableStateOf(prefs.getBoolean("is_options_bar_visible", true))
+    var isOptionsBarVisible: Boolean
+        get() = _isOptionsBarVisible.value
+        set(value) {
+            _isOptionsBarVisible.value = value
+            prefs.edit().putBoolean("is_options_bar_visible", value).apply()
+        }
+
+    private val _isMiniPlayerMinimized = mutableStateOf(prefs.getBoolean("is_mini_player_minimized", false))
+    var isMiniPlayerMinimized: Boolean
+        get() = _isMiniPlayerMinimized.value
+        set(value) {
+            _isMiniPlayerMinimized.value = value
+            prefs.edit().putBoolean("is_mini_player_minimized", value).apply()
+        }
 
     var isBlurEnabled: Boolean
         get() = prefs.getBoolean("is_blur_enabled", true)

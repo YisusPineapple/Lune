@@ -268,6 +268,13 @@ class Lune : AppCompatActivity() {
             LaunchedEffect(rawAllSongs) {
                 hiddenFolders.value = settingsManager.hiddenFolders
             }
+
+            // Restore playback state once songs are loaded
+            LaunchedEffect(musicViewModel.allSongs) {
+                if (musicViewModel.allSongs.isNotEmpty() && !playbackManager.stateRestored) {
+                    playbackManager.restorePlaybackState(musicViewModel.allSongs)
+                }
+            }
             
             val currentSong = playbackManager.currentSong
             val isPlaying = playbackManager.isPlaying
@@ -335,6 +342,9 @@ class Lune : AppCompatActivity() {
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_PAUSE) {
+                        playbackManager.savePlaybackState()
+                    }
                     if (event == Lifecycle.Event.ON_RESUME) {
                         useCustomColors = settingsManager.useCustomColors
                         customColorPalette = settingsManager.customColorPalette
@@ -360,13 +370,19 @@ class Lune : AppCompatActivity() {
             // Sync Progress
             LaunchedEffect(isPlaying) {
                 if (isPlaying) {
+                    var saveCounter = 0
                     while (isPlaying) {
                         playbackProgress = playbackManager.getProgress()
+                        saveCounter++
+                        if (saveCounter >= 10) { // Save position every ~5 seconds
+                            saveCounter = 0
+                            playbackManager.savePlaybackState(wasPlaying = true)
+                        }
                         kotlinx.coroutines.delay(500)
                     }
                 } else {
-                    // When playback stops (natural end), reset progress
-                    if (playbackManager.getProgress() >= 0.90f || playbackManager.getProgress() < 0.01f) {
+                    // Only reset progress when the queue actually ended, not on user pause
+                    if (playbackManager.isQueueFinished) {
                         playbackProgress = 0f
                     }
                 }
@@ -695,6 +711,8 @@ fun MainScreen(
     var showSearchScreen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        val scrollToCurrentTrigger = remember { mutableStateOf(0) }
+
         Scaffold(
             snackbarHost = { 
                 SnackbarHost(
@@ -1408,16 +1426,13 @@ fun MainScreen(
                                         if (idx != -1) idx + (if (showSimplifiedHeader) 1 else 0) else -1
                                     } else -1
                                 }
-                                
-                                ScrollToCurrentButton(
-                                    listState = pageMainListState,
-                                    targetIndex = targetIndex,
-                                    label = stringResource(R.string.queue_now_playing),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(bottom = bottomPadding + 16.dp)
-                                )
-                                
+
+                                LaunchedEffect(scrollToCurrentTrigger.value) {
+                                    if (targetIndex != -1) {
+                                        pageMainListState.animateScrollToItem(targetIndex)
+                                    }
+                                }
+
                                 FastScrollbar(
                                     listState = pageMainListState,
                                     items = pageSortedSongs,
@@ -1494,7 +1509,8 @@ fun MainScreen(
                         playbackManager.toggleFavorite(song)?.let { updated ->
                             musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
                         }
-                    }
+                    },
+                    scrollToCurrentTrigger = scrollToCurrentTrigger
                 )
             }
         }
@@ -1537,7 +1553,8 @@ fun MainScreen(
                         playbackManager.toggleFavorite(song)?.let { updated ->
                             musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
                         }
-                    }
+                    },
+                    scrollToCurrentTrigger = scrollToCurrentTrigger
                 )
             }
         }
@@ -1580,88 +1597,112 @@ fun MainScreen(
                         playbackManager.toggleFavorite(song)?.let { updated ->
                             musicViewModel.syncFavoriteStatusInMemory(updated.id, updated.isFavorite)
                         }
-                    }
+                    },
+                    scrollToCurrentTrigger = scrollToCurrentTrigger
                 )
             }
         }
 
-        val miniPlayerShape = if (isButtonNavigation) {
-            RoundedCornerShape(20.dp)
-        } else {
-            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-        }
+        val miniPlayerShape = RoundedCornerShape(20.dp)
 
         // Mini Player
-        AnimatedVisibility(
-            visible = currentSong != null && !isPlayerExpanded,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .then(
-                    if (isButtonNavigation) {
-                        Modifier
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = bottomInset + 8.dp)
-                    } else {
-                        Modifier
-                    }
-                )
-                .clip(miniPlayerShape)
-        ) {
-            val song = currentSong
-            if (song != null) {
-                val isDarkThemeMini = when (themeMode) {
-                    1 -> false
-                    2 -> true
-                    else -> isSystemInDarkTheme()
-                }
-                val miniPrefs = LocalContext.current.getSharedPreferences("lune_settings", android.content.Context.MODE_PRIVATE)
-                var blurEnabled by remember { mutableStateOf(settingsManager.isBlurEnabled) }
-                var blurDarkMode by remember { mutableStateOf(settingsManager.isBlurDarkMode) }
-                var blurLightMode by remember { mutableStateOf(settingsManager.isBlurLightMode) }
-                DisposableEffect(miniPrefs) {
-                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                        when (key) {
-                            "is_blur_enabled" -> blurEnabled = miniPrefs.getBoolean("is_blur_enabled", true)
-                            "is_blur_dark_mode" -> blurDarkMode = miniPrefs.getBoolean("is_blur_dark_mode", true)
-                            "is_blur_light_mode" -> blurLightMode = miniPrefs.getBoolean("is_blur_light_mode", false)
-                        }
-                    }
-                    miniPrefs.registerOnSharedPreferenceChangeListener(listener)
-                    onDispose { miniPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
-                }
-                val hasBlurBackgroundMini = blurEnabled &&
-                    (if (isDarkThemeMini) blurDarkMode else blurLightMode)
 
-                MiniPlayer(
-                    song = song,
-                    isPlaying = isPlaying,
-                    showWaveform = playbackManager.isMiniPlayerVisualizerEnabled,
-                    visualizerData = visualizerData,
-                    currentOutputIcon = playbackManager.currentOutputIcon,
-                    coverShape = coverShape,
-                    coverScale = coverScale,
-                    coverSpin = coverSpin,
-                    coverVinylEffect = coverVinylEffect,
-                    controlsIconStyle = controlsIconStyle,
-                    isControlsFilled = isControlsFilled,
-                    useCustomControlsColor = useCustomControlsColor,
-                    controlsColorPalette = controlsColorPalette,
-                    shape = miniPlayerShape,
-                    hasBlurBackground = hasBlurBackgroundMini,
-                    isDarkTheme = isDarkThemeMini,
-                    onTogglePlay = { 
-                        if (settingsManager.isHapticVibrationEnabled) {
-                            vibrator.triggerLightVibration()
+        if (currentSong != null && !isPlayerExpanded) {
+            val song = currentSong!!
+            val isDarkThemeMini = when (themeMode) {
+                1 -> false
+                2 -> true
+                else -> isSystemInDarkTheme()
+            }
+            val miniPrefs = LocalContext.current.getSharedPreferences("lune_settings", android.content.Context.MODE_PRIVATE)
+            var blurEnabled by remember { mutableStateOf(settingsManager.isBlurEnabled) }
+            var blurDarkMode by remember { mutableStateOf(settingsManager.isBlurDarkMode) }
+            var blurLightMode by remember { mutableStateOf(settingsManager.isBlurLightMode) }
+            DisposableEffect(miniPrefs) {
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    when (key) {
+                        "is_blur_enabled" -> blurEnabled = miniPrefs.getBoolean("is_blur_enabled", true)
+                        "is_blur_dark_mode" -> blurDarkMode = miniPrefs.getBoolean("is_blur_dark_mode", true)
+                        "is_blur_light_mode" -> blurLightMode = miniPrefs.getBoolean("is_blur_light_mode", false)
+                    }
+                }
+                miniPrefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose { miniPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
+            val hasBlurBackgroundMini = blurEnabled &&
+                (if (isDarkThemeMini) blurDarkMode else blurLightMode)
+
+            AnimatedContent(
+                targetState = settingsManager.isMiniPlayerMinimized,
+                transitionSpec = {
+                    fadeIn(tween(200)) + scaleIn(initialScale = 0.8f, animationSpec = tween(300, easing = FastOutSlowInEasing)) togetherWith
+                    fadeOut(tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(250, easing = FastOutSlowInEasing)) using
+                    SizeTransform(clip = false) { _, _ ->
+                        tween(300, easing = FastOutSlowInEasing)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                label = "miniPlayerTransition"
+            ) { minimized ->
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    if (minimized) {
+                        MiniPlayerMinimized(
+                            song = song,
+                            coverShape = coverShape,
+                            coverScale = coverScale,
+                            coverSpin = coverSpin,
+                            coverVinylEffect = coverVinylEffect,
+                            hasBlurBackground = hasBlurBackgroundMini,
+                            isDarkTheme = isDarkThemeMini,
+                            isPlaying = isPlaying,
+                            onRestore = { settingsManager.isMiniPlayerMinimized = false },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 12.dp, bottom = bottomInset + 12.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 25.dp, end = 25.dp)
+                                .padding(bottom = bottomInset + 8.dp)
+                        ) {
+                            MiniPlayer(
+                                song = song,
+                                isPlaying = isPlaying,
+                                showWaveform = playbackManager.isMiniPlayerVisualizerEnabled,
+                                visualizerData = visualizerData,
+                                currentOutputIcon = playbackManager.currentOutputIcon,
+                                coverShape = coverShape,
+                                coverScale = coverScale,
+                                coverSpin = coverSpin,
+                                coverVinylEffect = coverVinylEffect,
+                                controlsIconStyle = controlsIconStyle,
+                                isControlsFilled = isControlsFilled,
+                                useCustomControlsColor = useCustomControlsColor,
+                                controlsColorPalette = controlsColorPalette,
+                                shape = miniPlayerShape,
+                                hasBlurBackground = hasBlurBackgroundMini,
+                                isDarkTheme = isDarkThemeMini,
+                                onTogglePlay = { 
+                                    if (settingsManager.isHapticVibrationEnabled) {
+                                        vibrator.triggerLightVibration()
+                                    }
+                                    if (isPlaying) playbackManager.pause() else playbackManager.resume()
+                                    onIsPlayingChange(!isPlaying)
+                                },
+                                onExpand = { onIsPlayerExpandedChange(true) },
+                                onPrevious = playPrevious,
+                                onNext = playNext,
+                                onSearchClick = { showSearchScreen = true },
+                                onScrollToCurrent = { scrollToCurrentTrigger.value++ },
+                                onMinimize = { settingsManager.isMiniPlayerMinimized = true }
+                            )
                         }
-                        if (isPlaying) playbackManager.pause() else playbackManager.resume()
-                        onIsPlayingChange(!isPlaying)
-                    },
-                    onExpand = { onIsPlayerExpandedChange(true) },
-                    onPrevious = playPrevious,
-                    onNext = playNext
-                )
+                    }
+                }
             }
         }
 

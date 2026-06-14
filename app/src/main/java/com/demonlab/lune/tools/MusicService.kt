@@ -207,23 +207,23 @@ class MusicService : MediaBrowserServiceCompat() {
     }
 
     private fun setupAudioFx(sessionId: Int, isSecondary: Boolean = false) {
-        try {
-            if (isSecondary) {
-                secondaryEqualizer?.release()
-                secondaryBassBoost?.release()
-                secondaryVirtualizer?.release()
-                loudnessEffect?.release(true)
-                reverbEffect?.release(true)
-                dynamicsEffect?.release(true)
-            } else {
-                equalizer?.release()
-                bassBoost?.release()
-                virtualizer?.release()
-                loudnessEffect?.release(false)
-                reverbEffect?.release(false)
-                dynamicsEffect?.release(false)
-            }
+        if (isSecondary) {
+            secondaryEqualizer?.release()
+            secondaryBassBoost?.release()
+            secondaryVirtualizer?.release()
+            loudnessEffect?.release(true)
+            reverbEffect?.release(true)
+            dynamicsEffect?.release(true)
+        } else {
+            equalizer?.release()
+            bassBoost?.release()
+            virtualizer?.release()
+            loudnessEffect?.release(false)
+            reverbEffect?.release(false)
+            dynamicsEffect?.release(false)
+        }
 
+        try {
             val eq = Equalizer(0, sessionId).apply {
                 enabled = settingsManager.isEqEnabled
                 val storedBands = settingsManager.eqBandLevels.split(",").filter { it.isNotEmpty() }
@@ -235,27 +235,33 @@ class MusicService : MediaBrowserServiceCompat() {
                     }
                 }
             }
+            if (isSecondary) secondaryEqualizer = eq else equalizer = eq
+        } catch (e: Exception) { e.printStackTrace() }
 
+        try {
             val bb = BassBoost(0, sessionId).apply {
-                enabled = false
+                enabled = settingsManager.isBassBoostEnabled
+                if (enabled && strengthSupported) setStrength(settingsManager.bassBoostLevel.toShort())
             }
+            if (isSecondary) secondaryBassBoost = bb else bassBoost = bb
+        } catch (e: Exception) { e.printStackTrace() }
 
+        try {
             val virt = Virtualizer(0, sessionId).apply {
                 enabled = settingsManager.isSpatialAudioEnabled
                 if (strengthSupported) {
-                    val s = 800.toShort()
-                    setStrength(s)
-                    currentSpatialStrength = s
+                    setStrength(800.toShort())
+                    currentSpatialStrength = 800.toShort()
                 }
             }
+            if (isSecondary) secondaryVirtualizer = virt else virtualizer = virt
+        } catch (e: Exception) { e.printStackTrace() }
 
+        try {
             if (isSecondary) {
                 loudnessEffect?.setup(sessionId, true, settingsManager.isLoudnessEnabled, settingsManager.loudnessGain)
                 reverbEffect?.setup(sessionId, true, settingsManager.reverbPreset)
                 dynamicsEffect?.setup(sessionId, true, settingsManager.dynamicsPreset)
-                secondaryEqualizer = eq
-                secondaryBassBoost = bb
-                secondaryVirtualizer = virt
             } else {
                 val loud = LoudnessEffect().apply {
                     setup(sessionId, false, settingsManager.isLoudnessEnabled, settingsManager.loudnessGain)
@@ -269,13 +275,8 @@ class MusicService : MediaBrowserServiceCompat() {
                     setup(sessionId, false, settingsManager.dynamicsPreset)
                 }
                 dynamicsEffect = dyn
-                equalizer = eq
-                bassBoost = bb
-                virtualizer = virt
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -546,9 +547,6 @@ class MusicService : MediaBrowserServiceCompat() {
                 }
 
                 val sessionId = secondaryPlayer?.audioSessionId ?: 0
-                if (sessionId != 0) {
-                    setupAudioFx(sessionId, true)
-                }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     try {
@@ -589,11 +587,12 @@ class MusicService : MediaBrowserServiceCompat() {
 
                     val progress = i.toFloat() / steps
 
-                    // Asymmetric crossfade: outgoing track fades out fast (quadratic),
-                    // incoming track fades in complementary. Cross point at ~30%,
-                    // avoids the muddy overlap of a constant-power curve.
+                    // Smoother fade-in for the incoming track to compensate for RAW audio loudness
+                    // and apply a headroom factor if EQ is enabled to prevent jarring volume jumps
+                    // when the EQ is finally applied at the end of the transition.
+                    val targetEqFactor = if (settingsManager.isEqEnabled || settingsManager.isBassBoostEnabled) 0.6f else 1.0f
                     val volCurrent = (1 - progress) * (1 - progress)
-                    val volNext = 1 - ((1 - progress) * (1 - progress))
+                    val volNext = (progress * progress) * targetEqFactor
 
                     mediaPlayer?.setVolume(volCurrent, volCurrent)
                     secondaryPlayer?.setVolume(volNext, volNext)
@@ -613,12 +612,10 @@ class MusicService : MediaBrowserServiceCompat() {
                 reverbEffect?.release(false)
                 dynamicsEffect?.release(false)
 
-                equalizer = secondaryEqualizer
-                bassBoost = secondaryBassBoost
-                virtualizer = secondaryVirtualizer
-                loudnessEffect?.handover()
-                reverbEffect?.handover()
-                dynamicsEffect?.handover()
+                val newSessionId = mediaPlayer?.audioSessionId ?: 0
+                if (newSessionId != 0) {
+                    setupAudioFx(newSessionId, false)
+                }
 
                 secondaryEqualizer = null
                 secondaryBassBoost = null
@@ -640,6 +637,8 @@ class MusicService : MediaBrowserServiceCompat() {
                     oldPlayer?.release()
                 }
 
+                isCrossfading = false
+                playbackManager.isTransitioning = false
                 PlaybackManager.getInstance(applicationContext).updateCurrentSongState(nextSong)
 
                 val art = fetchAlbumArt(nextSong)
@@ -756,6 +755,62 @@ class MusicService : MediaBrowserServiceCompat() {
             val song = currentSong() ?: return@launch
             val art = fetchAlbumArt(song)
             showNotification(song, false, art)
+        }
+    }
+
+    fun restorePlayback(song: Song, positionMs: Long, andPlay: Boolean) {
+        isCrossfading = false
+        PlaybackManager.getInstance(applicationContext).isTransitioning = false
+        monitorJob?.cancel()
+        requestAudioFocus()
+
+        mediaPlayer?.setOnCompletionListener(null)
+        mediaPlayer?.setOnErrorListener(null)
+        mediaPlayer?.release()
+        secondaryPlayer?.setOnCompletionListener(null)
+        secondaryPlayer?.setOnErrorListener(null)
+        secondaryPlayer?.release()
+        secondaryPlayer = null
+
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(applicationContext, song.uri)
+            setOnPreparedListener {
+                seekTo(positionMs.toInt())
+                start()
+                if (!andPlay) pause()
+                val sessionId = audioSessionId
+                setupAudioFx(sessionId, false)
+                setVolume(1f, 1f)
+                applyBalance(PlaybackManager.getInstance(applicationContext).balance)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    try {
+                        val pm = PlaybackManager.getInstance(applicationContext)
+                        val speed = pm.playbackSpeed
+                        val pitch = pm.playbackPitch
+                        if (speed != 1.0f || pitch != 1.0f) {
+                            val params = playbackParams
+                            params.speed = speed
+                            params.pitch = pitch
+                            playbackParams = params
+                        }
+                    } catch (e: Exception) {}
+                }
+                updatePlaybackState()
+                serviceScope.launch {
+                    val art = fetchAlbumArt(song)
+                    updateMetadata(song, art)
+                    showNotification(song, andPlay, art)
+                    PlaybackManager.getInstance(applicationContext).clearLyrics()
+                    extractLyrics(song)
+                }
+            }
+            setOnErrorListener { _, _, _ -> true }
+            prepareAsync()
+            setOnCompletionListener {
+                if (!isCrossfading) {
+                    PlaybackManager.getInstance(applicationContext).playNextFromService(true)
+                }
+            }
         }
     }
 
