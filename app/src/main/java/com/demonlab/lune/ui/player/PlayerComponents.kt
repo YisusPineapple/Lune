@@ -1314,8 +1314,6 @@ fun MiniPlayer(
     onScrollToCurrent: (() -> Unit)? = null,
     onMinimize: (() -> Unit)? = null
 ) {
-    // M3E: Use spring physics for organic rotation instead of linear easing when possible, 
-    // but for continuous spin, linear is required. We keep it hardware accelerated.
     val infiniteSpinTransition = rememberInfiniteTransition(label = "MiniPlayerSpin")
     val spinRotation by infiniteSpinTransition.animateFloat(
         initialValue = 0f,
@@ -1327,7 +1325,6 @@ fun MiniPlayer(
         label = "SpinAnimation"
     )
 
-    // M3E: Spring animation for play/pause morphing effect
     val playPauseScale by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0.85f,
         animationSpec = spring(
@@ -1344,19 +1341,44 @@ fun MiniPlayer(
         modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
+            .pointerInput(Unit) {
+                var totalDragY = 0f
+                var gestureConsumed = false
+                detectDragGestures(
+                    onDragStart = {
+                        totalDragY = 0f
+                        gestureConsumed = false
+                    },
+                    onDrag = { _, dragAmount ->
+                        if (!gestureConsumed) {
+                            totalDragY += dragAmount.y
+                            val absY = kotlin.math.abs(totalDragY)
+                            val absX = kotlin.math.abs(dragAmount.x)
+                            
+                            // Si el arrastre es vertical y supera los 40px
+                            if (absY > 40f && absY > absX * 1.5f) {
+                                if (totalDragY < 0) {
+                                    onExpand() // Swipe Up
+                                } else {
+                                    onMinimize?.invoke() // Swipe Down
+                                }
+                                gestureConsumed = true
+                            }
+                        }
+                    }
+                )
+            }
             .clickable { onExpand() },
         shape = shape,
         color = if (hasBlurBackground) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
         tonalElevation = if (hasBlurBackground) 0.dp else 8.dp
     ) {
         Box {
-            // Background Layer
             if (hasBlurBackground) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            // Hardware acceleration for blur and alpha
                             alpha = if (isDarkTheme) 0.2f else 0.35f
                             renderEffect = androidx.compose.ui.graphics.BlurEffect(
                                 radiusX = 80.dp.toPx(),
@@ -1386,7 +1408,6 @@ fun MiniPlayer(
                 }
             }
 
-            // Visualizer Layer
             if (showWaveform) {
                 WaveformVisualizer(
                     modifier = Modifier
@@ -1402,20 +1423,16 @@ fun MiniPlayer(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-
-            // Content Layer
             Column(
                 modifier = Modifier
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .fillMaxSize()
             ) {
-                // Top Row: Cover, Info, Minimize Button
                 Box(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Cover Art
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -1458,7 +1475,6 @@ fun MiniPlayer(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Track Info
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = song.title,
@@ -1478,9 +1494,7 @@ fun MiniPlayer(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = song.artist,
-                                    modifier = Modifier
-                                        .basicMarquee()
-                                        .weight(1f, fill = false),
+                                    modifier = Modifier.basicMarquee().weight(1f, fill = false),
                                     color = if (hasBlurBackground) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1
@@ -1489,13 +1503,10 @@ fun MiniPlayer(
                         }
                     }
 
-                    // Minimize Button
                     if (onMinimize != null) {
                         IconButton(
                             onClick = onMinimize,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(24.dp)
+                            modifier = Modifier.align(Alignment.TopEnd).size(24.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
@@ -1506,7 +1517,6 @@ fun MiniPlayer(
                     }
                 }
 
-                // Bottom Row: Controls
                 val activePrimary = getControlsPrimaryColor(useCustomControlsColor, controlsColorPalette)
                 val pillMiniColor = if (useCustomControlsColor) {
                     activePrimary.copy(alpha = 0.25f)
@@ -1527,15 +1537,12 @@ fun MiniPlayer(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Search Button
                     if (onSearchClick != null) {
                         Surface(
                             onClick = onSearchClick,
                             shape = CircleShape,
                             color = pillMiniColor,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .bounceClick()
+                            modifier = Modifier.size(36.dp).bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1552,7 +1559,6 @@ fun MiniPlayer(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Playback Controls
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -1561,9 +1567,7 @@ fun MiniPlayer(
                             onClick = onPrevious,
                             shape = RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp, topEnd = 4.dp, bottomEnd = 4.dp),
                             color = pillMiniColor,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .bounceClick()
+                            modifier = Modifier.size(40.dp).bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 ReusableSkipIcon(
@@ -1579,9 +1583,7 @@ fun MiniPlayer(
                             onClick = onTogglePlay,
                             shape = RoundedCornerShape(4.dp),
                             color = pillMiniColor,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .bounceClick()
+                            modifier = Modifier.size(40.dp).bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1601,9 +1603,7 @@ fun MiniPlayer(
                             onClick = onNext,
                             shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 22.dp, bottomEnd = 22.dp),
                             color = pillMiniColor,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .bounceClick()
+                            modifier = Modifier.size(40.dp).bounceClick()
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 ReusableSkipIcon(
@@ -1619,7 +1619,6 @@ fun MiniPlayer(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Scroll to Current Button
                     if (onScrollToCurrent != null) {
                         val pulseScale by infiniteSpinTransition.animateFloat(
                             initialValue = 1f,
@@ -1634,13 +1633,10 @@ fun MiniPlayer(
                             onClick = onScrollToCurrent,
                             shape = CircleShape,
                             color = pillMiniColor,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .bounceClick()
-                                .graphicsLayer {
-                                    scaleX = pulseScale
-                                    scaleY = pulseScale
-                                }
+                            modifier = Modifier.size(36.dp).bounceClick().graphicsLayer {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1696,6 +1692,25 @@ fun MiniPlayerMinimized(
                 scaleY = coverScale
             }
             .shadow(6.dp, CircleShape)
+            .pointerInput(Unit) {
+                var totalDragY = 0f
+                var gestureConsumed = false
+                detectDragGestures(
+                    onDragStart = {
+                        totalDragY = 0f
+                        gestureConsumed = false
+                    },
+                    onDrag = { _, dragAmount ->
+                        if (!gestureConsumed) {
+                            totalDragY += dragAmount.y
+                            if (totalDragY < -30f) {
+                                onRestore() // Swipe Up para expandir la burbuja
+                                gestureConsumed = true
+                            }
+                        }
+                    }
+                )
+            }
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (hasBlurBackground) {
