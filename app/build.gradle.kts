@@ -33,14 +33,11 @@ android {
         versionCode = 7
         versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Default app name for release
+        manifestPlaceholders["appName"] = "Lune"
     }
 
-    // =============================================
-    //      Only define the signing config if the
-    //      keystore.properties file actually exists.
-    //      This prevents a crash for contributors
-    //      who have not set up a release keystore.
-    // =============================================
     if (keystorePropertiesFile.exists()) {
         signingConfigs {
             create("release") {
@@ -60,16 +57,24 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // The signing config is also only applied when the file exists
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        debug {
+            // This makes Android treat it as a completely separate app
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-DEBUG"
+            // Changes the name on your phone's launcher
+            manifestPlaceholders["appName"] = "Lune Debug"
+        }
     }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+    
     buildFeatures {
         compose = true
         buildConfig = true
