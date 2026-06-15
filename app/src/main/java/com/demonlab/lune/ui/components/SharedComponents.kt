@@ -20,10 +20,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.MoreVert
@@ -36,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -50,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
 import coil.compose.AsyncImage
 import com.demonlab.lune.R
 import com.demonlab.lune.tools.PlaybackManager
@@ -220,7 +218,10 @@ fun SongItem(
                                 tint = Color.White.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .size(60.dp)
-                                    .then(if (isPlaying) Modifier.rotate(rotation) else Modifier)
+                                    .graphicsLayer {
+                                        // M3E: Hardware accelerated rotation
+                                        rotationZ = if (isPlaying) rotation else 0f
+                                    }
                             )
                             Icon(
                                 imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
@@ -582,17 +583,28 @@ fun WaveformVisualizer(
     magnitudes: FloatArray,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        magnitudes.forEach { magnitude ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(magnitude)
-                    .background(color, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+    // M3E: Hardware accelerated Canvas drawing. 
+    // Replaces 48 Box composables to eliminate layout invalidation jank.
+    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxWidth()) {
+        val barCount = magnitudes.size
+        if (barCount == 0) return@Canvas
+
+        val spacing = 2.dp.toPx()
+        val totalSpacing = spacing * (barCount - 1)
+        val barWidth = (size.width - totalSpacing) / barCount
+        val cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+
+        for (i in 0 until barCount) {
+            val magnitude = magnitudes[i].coerceIn(0f, 1f)
+            val barHeight = size.height * magnitude
+            val x = i * (barWidth + spacing)
+            val y = size.height - barHeight
+
+            drawRoundRect(
+                color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                cornerRadius = cornerRadius
             )
         }
     }
@@ -731,7 +743,10 @@ fun VinylRecordAsyncCover(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .rotate(rotation)
+            .graphicsLayer {
+                // M3E: Hardware accelerated rotation
+                rotationZ = rotation
+            }
             .clip(CircleShape)
             .background(Color(0xFF101010)),
         contentAlignment = Alignment.Center
