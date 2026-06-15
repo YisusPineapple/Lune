@@ -20,8 +20,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.MoreVert
@@ -56,6 +58,7 @@ import com.demonlab.lune.tools.Song
 import com.demonlab.lune.ui.utils.formatDuration
 import com.demonlab.lune.ui.utils.formatDurationCompact
 import com.demonlab.lune.ui.utils.formatLongDuration
+import com.demonlab.lune.ui.utils.bounceClick
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
